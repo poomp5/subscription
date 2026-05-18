@@ -19,8 +19,8 @@ const prompt = Prompt({
 });
 
 export const metadata: Metadata = {
-  title: "Digital Science Premium Package",
-  description: "สมัครสมาชิก Digital Science Premium — เข้าถึงเนื้อหาทั้งหมดของห้อง",
+  title: "Digital Science | DS Premium",
+  description: "ระบบจัดการเงินห้องประจำปี 2569",
 };
 
 export default function RootLayout({

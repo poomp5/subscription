@@ -49,6 +49,16 @@ export async function PATCH(
         SET status = ${status}, reviewed_at = ${reviewedAt}
         WHERE id = ${submissionId}
       `;
+      // อนุมัติ penalty submission → reset ค่าปรับเป็น 0
+      if (action === "approve") {
+        await sql`
+          UPDATE penalties
+          SET count = 0, reasons = '[]', updated_at = NOW()
+          WHERE student_id = (
+            SELECT student_id FROM submissions WHERE id = ${submissionId} AND plan_id = 'penalty'
+          )
+        `;
+      }
     }
     return Response.json({ ok: true });
   } catch (err) {

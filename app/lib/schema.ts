@@ -29,6 +29,40 @@ export function ensureSchema(): Promise<void> {
       await sql`CREATE INDEX IF NOT EXISTS submissions_status_idx ON submissions (status)`;
       await sql`CREATE INDEX IF NOT EXISTS submissions_created_idx ON submissions (created_at DESC)`;
       await sql`CREATE INDEX IF NOT EXISTS submissions_student_idx ON submissions (student_id)`;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS penalties (
+          id          BIGSERIAL PRIMARY KEY,
+          student_id  TEXT NOT NULL,
+          count       INTEGER NOT NULL DEFAULT 0,
+          reasons     JSONB NOT NULL DEFAULT '[]',
+          updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (student_id)
+        )
+      `;
+      // migrate existing rows that were created before the reasons column was added
+      await sql`
+        ALTER TABLE penalties ADD COLUMN IF NOT EXISTS reasons JSONB NOT NULL DEFAULT '[]'
+      `;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS penalty_submissions (
+          id          BIGSERIAL PRIMARY KEY,
+          ref         TEXT NOT NULL UNIQUE,
+          student_id  TEXT NOT NULL,
+          nickname_th TEXT NOT NULL,
+          full_name_th TEXT NOT NULL,
+          amount      NUMERIC(10,2) NOT NULL,
+          penalty_count INTEGER NOT NULL,
+          slip_url    TEXT,
+          slip_key    TEXT,
+          status      TEXT NOT NULL DEFAULT 'PENDING',
+          created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          reviewed_at TIMESTAMPTZ
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS pen_sub_student_idx ON penalty_submissions (student_id)`;
+      await sql`CREATE INDEX IF NOT EXISTS pen_sub_status_idx  ON penalty_submissions (status)`;
     })().catch((err) => {
       initialized = null;
       throw err;

@@ -4,6 +4,7 @@ import { findPlan } from "../../data/plans";
 import { sql } from "../../lib/db";
 import { ensureSchema } from "../../lib/schema";
 import { uploadSlip } from "../../lib/storage";
+import { notifyDiscord } from "../../lib/discord";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,6 +110,17 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+
+  notifyDiscord({
+    title: "💳 สลิปใหม่รอตรวจสอบ",
+    description: `**${student.nicknameTh}** (${student.firstNameTh} ${student.lastNameTh})`,
+    color: 0x7c3aed,
+    fields: [
+      { name: "แพ็กเกจ", value: `${plan.nameTh} — ฿${plan.priceLabel}`, inline: true },
+      { name: "Ref", value: ref, inline: true },
+      ...(note ? [{ name: "หมายเหตุ", value: note }] : []),
+    ],
+  });
 
   return Response.json({ ok: true, ref });
 }

@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { SubmissionRow } from "../lib/db";
+import PenaltyManager, { type StudentPenaltyRow } from "./PenaltyManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
+type Tab = Status | "PENALTIES";
 
 type Summary = {
   ALL: number;
@@ -14,7 +16,7 @@ type Summary = {
   TOTAL: number;
 };
 
-const TABS: { key: Status; label: string }[] = [
+const SUBMISSION_TABS: { key: Status; label: string }[] = [
   { key: "PENDING", label: "รอตรวจสอบ" },
   { key: "APPROVED", label: "อนุมัติแล้ว" },
   { key: "REJECTED", label: "ปฏิเสธ" },
@@ -26,22 +28,26 @@ export default function AdminDashboard({
   status,
   q,
   summary,
+  penaltyRows,
 }: {
   rows: SubmissionRow[];
   status: Status;
   q: string;
   summary: Summary;
+  penaltyRows: StudentPenaltyRow[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
   const [, startTransition] = useTransition();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>(status);
 
   function go(nextStatus: Status, nextQ: string) {
     const params = new URLSearchParams();
     if (nextStatus !== "ALL") params.set("status", nextStatus);
     if (nextQ) params.set("q", nextQ);
     const qs = params.toString();
+    setActiveTab(nextStatus);
     startTransition(() => {
       router.push(`/admin${qs ? `?${qs}` : ""}`);
     });
@@ -56,23 +62,23 @@ export default function AdminDashboard({
   return (
     <main className="flex flex-1 flex-col px-5 py-8 sm:px-8">
       <div className="mx-auto w-full max-w-7xl">
+        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-violet-500">
-              Admin
-            </div>
+            <div className="text-xs uppercase tracking-[0.2em] text-violet-500">Admin</div>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-              <span className="text-primary">DS Premium</span> · ตรวจสอบสลิป
+              <span className="text-primary">DS Premium</span> · Dashboard
             </h1>
           </div>
           <button
             onClick={logout}
-            className="rounded-xl border border-(--border) bg-white px-4 py-2 text-sm text-foreground transition hover:bg-violet-50"
+            className="rounded-xl border border-border-default bg-white px-4 py-2 text-sm text-foreground transition hover:bg-violet-50"
           >
             ออกจากระบบ
           </button>
         </div>
 
+        {/* Stats */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="ทั้งหมด" value={summary.TOTAL} tone="violet" />
           <StatCard label="รอตรวจสอบ" value={summary.PENDING} tone="amber" />
@@ -80,81 +86,95 @@ export default function AdminDashboard({
           <StatCard label="ปฏิเสธ" value={summary.REJECTED} tone="rose" />
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5 rounded-xl border border-(--border) bg-white p-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => go(tab.key, search)}
-                className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
-                  status === tab.key
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted hover:bg-violet-50"
-                }`}
-              >
-                {tab.label}
-                {tab.key !== "ALL" && (
-                  <span
-                    className={`ml-1.5 text-[11px] ${
-                      status === tab.key ? "text-white/80" : "text-violet-400"
-                    }`}
-                  >
-                    {summary[tab.key]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              go(status, search.trim());
-            }}
-            className="flex w-full max-w-sm items-center gap-2 sm:w-auto"
-          >
-            <input
-              type="text"
-              placeholder="ค้นหา: ชื่อ, เลข ปจต., ref"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="block w-full rounded-xl border border-(--border) bg-white px-3 py-2 text-sm text-foreground placeholder:text-violet-300 outline-none transition focus:border-primary focus:ring-2 focus:ring-violet-200"
-            />
+        {/* Tab bar */}
+        <div className="mt-6 flex flex-wrap gap-1.5 rounded-xl border border-border-default bg-white p-1 w-fit">
+          {SUBMISSION_TABS.map((tab) => (
             <button
-              type="submit"
-              className="rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-700"
+              key={tab.key}
+              onClick={() => go(tab.key, search)}
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+                activeTab === tab.key
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted hover:bg-violet-50"
+              }`}
             >
-              ค้นหา
+              {tab.label}
+              {tab.key !== "ALL" && (
+                <span className={`ml-1.5 text-[11px] ${activeTab === tab.key ? "text-white/80" : "text-violet-400"}`}>
+                  {summary[tab.key]}
+                </span>
+              )}
             </button>
-          </form>
-        </div>
-
-        <div className="mt-5 overflow-hidden rounded-2xl border border-(--border) bg-white">
-          <div className="hidden grid-cols-[110px_1fr_140px_120px_110px_130px_180px] gap-3 border-b border-(--border) bg-(--surface-muted) px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
-            <div>วันที่</div>
-            <div>นักเรียน</div>
-            <div>แพ็กเกจ</div>
-            <div className="text-right">ยอด</div>
-            <div>สลิป</div>
-            <div>สถานะ</div>
-            <div className="text-right">การจัดการ</div>
-          </div>
-
-          {rows.length === 0 && (
-            <div className="px-4 py-16 text-center text-sm text-muted">
-              ยังไม่มีรายการในช่องนี้
-            </div>
-          )}
-
-          {rows.map((row) => (
-            <Row
-              key={row.id}
-              row={row}
-              onPreview={setPreviewUrl}
-              onChange={() => router.refresh()}
-            />
           ))}
+          <button
+            onClick={() => setActiveTab("PENALTIES")}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+              activeTab === "PENALTIES"
+                ? "bg-rose-600 text-white shadow-sm"
+                : "text-muted hover:bg-rose-50"
+            }`}
+          >
+            จัดการค่าปรับ
+          </button>
         </div>
+
+        {/* Content */}
+        {activeTab === "PENALTIES" ? (
+          <PenaltyManager rows={penaltyRows} />
+        ) : (
+          <>
+            <div className="mt-4 flex w-full max-w-sm items-center gap-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  go(activeTab as Status, search.trim());
+                }}
+                className="flex w-full items-center gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="ค้นหา: ชื่อ, เลข ปจต., ref"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="block w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm text-foreground placeholder:text-violet-300 outline-none transition focus:border-primary focus:ring-2 focus:ring-violet-200"
+                />
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white transition hover:bg-violet-700"
+                >
+                  ค้นหา
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-2xl border border-border-default bg-white">
+              <div className="hidden grid-cols-[110px_1fr_140px_120px_110px_130px_180px] gap-3 border-b border-border-default bg-surface-muted px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
+                <div>วันที่</div>
+                <div>นักเรียน</div>
+                <div>แพ็กเกจ</div>
+                <div className="text-right">ยอด</div>
+                <div>สลิป</div>
+                <div>สถานะ</div>
+                <div className="text-right">การจัดการ</div>
+              </div>
+
+              {rows.length === 0 && (
+                <div className="px-4 py-16 text-center text-sm text-muted">
+                  ยังไม่มีรายการในช่องนี้
+                </div>
+              )}
+
+              {rows.map((row) => (
+                <SubmissionRow
+                  key={row.id}
+                  row={row}
+                  onPreview={setPreviewUrl}
+                  onChange={() => router.refresh()}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {previewUrl && (
@@ -201,15 +221,13 @@ function StatusBadge({ status }: { status: string }) {
         ? { label: "ปฏิเสธ", cls: "border-rose-200 bg-rose-50 text-rose-700" }
         : { label: "รอตรวจสอบ", cls: "border-amber-200 bg-amber-50 text-amber-700" };
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cfg.cls}`}
-    >
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cfg.cls}`}>
       {cfg.label}
     </span>
   );
 }
 
-function Row({
+function SubmissionRow({
   row,
   onPreview,
   onChange,
@@ -249,7 +267,7 @@ function Row({
   });
 
   return (
-    <div className="grid grid-cols-1 gap-3 border-b border-(--border) px-4 py-4 transition last:border-0 hover:bg-(--surface-muted) lg:grid-cols-[110px_1fr_140px_120px_110px_130px_180px] lg:items-center">
+    <div className="grid grid-cols-1 gap-3 border-b border-border-default px-4 py-4 transition last:border-0 hover:bg-surface-muted lg:grid-cols-[110px_1fr_140px_120px_110px_130px_180px] lg:items-center">
       <div className="text-xs text-muted lg:text-sm">{dateStr}</div>
 
       <div>
@@ -275,7 +293,7 @@ function Row({
         {row.slip_url ? (
           <button
             onClick={() => onPreview(row.slip_url!)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-(--border) bg-white px-2.5 py-1 text-xs text-primary-ink transition hover:bg-violet-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-white px-2.5 py-1 text-xs text-primary transition hover:bg-violet-50"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
               <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
@@ -345,7 +363,7 @@ function SlipPreviewModal({ url, onClose }: { url: string; onClose: () => void }
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[90vh] max-w-2xl overflow-hidden rounded-2xl border border-(--border) bg-white shadow-2xl shadow-violet-900/20"
+        className="relative max-h-[90vh] max-w-2xl overflow-hidden rounded-2xl border border-border-default bg-white shadow-2xl shadow-violet-900/20"
       >
         <button
           onClick={onClose}
@@ -362,12 +380,12 @@ function SlipPreviewModal({ url, onClose }: { url: string; onClose: () => void }
         </button>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={url} alt="สลิป" className="max-h-[90vh] w-auto object-contain" />
-        <div className="border-t border-(--border) bg-(--surface-muted) px-4 py-2 text-center">
+        <div className="border-t border-border-default bg-surface-muted px-4 py-2 text-center">
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-primary-ink underline-offset-2 hover:underline"
+            className="text-xs text-primary underline-offset-2 hover:underline"
           >
             เปิดในแท็บใหม่
           </a>
