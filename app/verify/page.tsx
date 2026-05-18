@@ -40,7 +40,7 @@ export default async function VerifyPage({
         AND plan_id != 'penalty'
     `,
     sql`
-      SELECT count FROM penalties WHERE student_id = ${student.studentId}
+      SELECT count, reasons FROM penalties WHERE student_id = ${student.studentId}
     `,
     sql`
       SELECT ref FROM submissions
@@ -60,7 +60,9 @@ export default async function VerifyPage({
 
   const paidTotal = Number((submissionRows[0] as { total: string }).total);
   const remaining = Math.max(0, TOTAL_TARGET - paidTotal);
-  const penaltyCount = (penaltyRows[0] as { count: number } | undefined)?.count ?? 0;
+  const penaltyRow = penaltyRows[0] as { count: number; reasons: string[] } | undefined;
+  const penaltyCount = penaltyRow?.count ?? 0;
+  const penaltyReasons: string[] = penaltyRow?.reasons ?? [];
   const penaltyAmount = totalPenalty(penaltyCount);
   const penaltyQrUrl = penaltyAmount > 0 ? promptpayUrl(penaltyAmount) : null;
   const penaltyPendingRef = (pendingPenaltyRows[0] as { ref: string } | undefined)?.ref ?? null;
@@ -120,6 +122,7 @@ export default async function VerifyPage({
               studentId={student.studentId}
               amount={penaltyAmount}
               count={penaltyCount}
+              reasons={penaltyReasons}
               qrUrl={penaltyQrUrl}
               pendingRef={penaltyPendingRef}
             />

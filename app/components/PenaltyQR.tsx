@@ -11,12 +11,14 @@ export default function PenaltyQR({
   studentId,
   amount,
   count,
+  reasons,
   qrUrl,
   pendingRef,
 }: {
   studentId: string;
   amount: number;
   count: number;
+  reasons: string[];
   qrUrl: string;
   pendingRef: string | null;
 }) {
@@ -37,6 +39,7 @@ export default function PenaltyQR({
   const rows = Array.from({ length: count }, (_, i) => ({
     round: i + 1,
     charge: 20 + i * 5,
+    reason: reasons[i] ?? "",
   }));
 
   function handleFile(file: File) {
@@ -201,7 +204,7 @@ export default function PenaltyQR({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-medium uppercase tracking-wider text-rose-600">
-            ยอดค้างชำระ — โทษไม่ทำเวร
+            ยอดค้างชำระ — โทษในห้อง
           </div>
           <div className="mt-1 text-3xl font-bold text-rose-800">
             ฿{amount.toLocaleString("th-TH")}
@@ -224,6 +227,7 @@ export default function PenaltyQR({
             <thead>
               <tr className="border-b border-rose-100 text-[11px] uppercase tracking-wider text-rose-400">
                 <th className="px-3 py-2 text-left">ครั้งที่</th>
+                <th className="px-3 py-2 text-left">เหตุผล</th>
                 <th className="px-3 py-2 text-right">ค่าปรับ</th>
               </tr>
             </thead>
@@ -231,6 +235,7 @@ export default function PenaltyQR({
               {rows.map((r) => (
                 <tr key={r.round} className="border-b border-rose-50 last:border-0">
                   <td className="px-3 py-1.5 text-rose-700">{r.round}</td>
+                  <td className="px-3 py-1.5 text-rose-600">{r.reason || "—"}</td>
                   <td className="px-3 py-1.5 text-right font-medium text-rose-800">฿{r.charge}</td>
                 </tr>
               ))}

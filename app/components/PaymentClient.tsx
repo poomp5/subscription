@@ -42,6 +42,7 @@ export default function PaymentClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   function handleFile(file: File) {
     setError(null);
@@ -114,13 +115,29 @@ export default function PaymentClient({
       if (!res.ok || !data?.ok) {
         throw new Error(data?.error || "บันทึกไม่สำเร็จ");
       }
-      const ref = encodeURIComponent(data.ref || "");
-      router.push(`/success?ref=${ref}&plan=${plan.id}&id=${student.studentId}`);
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/verify?id=${student.studentId}`);
+      }, 2000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       setError(msg);
       setSubmitting(false);
     }
+  }
+
+  if (success) {
+    return (
+      <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center fade-up">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500">
+          <svg className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+            <path fillRule="evenodd" d="M16.704 5.296a1 1 0 010 1.408l-7.5 7.5a1 1 0 01-1.408 0l-3.5-3.5a1 1 0 011.408-1.408l2.796 2.796 6.796-6.796a1 1 0 011.408 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <h2 className="mt-3 text-lg font-semibold text-emerald-800">ส่งข้อมูลสำเร็จ!</h2>
+        <p className="mt-1 text-sm text-emerald-700">กำลังรอแอดมินอนุมัติ — กำลังพาคุณกลับ…</p>
+      </div>
+    );
   }
 
   return (
