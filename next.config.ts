@@ -1,0 +1,32 @@
+import path from "node:path";
+import type { NextConfig } from "next";
+
+const remotePatterns: NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]> = [
+  {
+    protocol: "https",
+    hostname: "promptpay.io",
+  },
+];
+
+if (process.env.R2_PUBLIC_BASE_URL) {
+  try {
+    const url = new URL(process.env.R2_PUBLIC_BASE_URL);
+    remotePatterns.push({
+      protocol: url.protocol.replace(":", "") as "http" | "https",
+      hostname: url.hostname,
+    });
+  } catch {
+    /* ignore invalid URL */
+  }
+}
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.join(__dirname),
+  },
+  images: {
+    remotePatterns,
+  },
+};
+
+export default nextConfig;
