@@ -18,7 +18,7 @@ export const DEPARTMENTS: Department[] = [
     id: "content",
     emoji: "📚",
     nameTh: "ฝ่ายเนื้อหา",
-    capacity: 12,
+    capacity: 10,
     summary: "ค้นข้อมูลนิราศ ทำบทความ ป้ายความรู้ และตรวจความถูกต้อง",
     duties: [
       "ค้นข้อมูลนิราศและเรียบเรียงเนื้อหา",
@@ -30,7 +30,7 @@ export const DEPARTMENTS: Department[] = [
     id: "art",
     emoji: "🎨",
     nameTh: "ฝ่ายศิลป์",
-    capacity: 12,
+    capacity: 10,
     summary: "ทำบอร์ด ตกแต่ง ออกแบบอินโฟกราฟิก และจัดสถานที่",
     duties: [
       "ทำบอร์ดและตกแต่งนิทรรศการ",
