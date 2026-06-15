@@ -3,8 +3,10 @@ import { isAdmin } from "../lib/admin";
 import { sql, type SubmissionRow } from "../lib/db";
 import { ensureSchema } from "../lib/schema";
 import { STUDENTS } from "../data/students";
+import { DEPARTMENTS } from "../data/departments";
 import AdminDashboard from "../components/AdminDashboard";
 import type { StudentPenaltyRow } from "../components/PenaltyManager";
+import type { ExhibitionChoiceRow } from "../components/ExhibitionManager";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export default async function AdminPage({
     : "ALL";
   const q = (qRaw || "").trim();
 
-  const [rowsRaw, counts, paidRaw, penaltiesRaw] = await Promise.all([
+  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw] = await Promise.all([
     status === "ALL" && !q
       ? sql`SELECT * FROM submissions ORDER BY created_at DESC LIMIT 500`
       : status === "ALL" && q
@@ -71,6 +73,11 @@ export default async function AdminPage({
     sql`SELECT status, COUNT(*)::int AS count FROM submissions GROUP BY status`,
     sql`SELECT student_id, COALESCE(SUM(amount),0)::numeric AS total FROM submissions WHERE status = 'APPROVED' GROUP BY student_id`,
     sql`SELECT student_id, count, COALESCE(reasons, '[]'::jsonb) AS reasons FROM penalties`,
+    sql`
+      SELECT student_id, student_no, nickname_th, full_name_th, department_id, created_at
+      FROM exhibition_choices
+      ORDER BY created_at ASC
+    `,
   ]);
 
   const rows = rowsRaw as unknown as SubmissionRow[];
@@ -113,6 +120,31 @@ export default async function AdminPage({
     };
   });
 
+  const exhibitionRows = (
+    exhibitionRaw as unknown as Array<{
+      student_id: string;
+      student_no: number;
+      nickname_th: string;
+      full_name_th: string;
+      department_id: string;
+      created_at: string;
+    }>
+  ).map<ExhibitionChoiceRow>((r) => ({
+    studentId: r.student_id,
+    studentNo: r.student_no,
+    nicknameTh: r.nickname_th,
+    fullNameTh: r.full_name_th,
+    departmentId: r.department_id,
+    createdAt: r.created_at,
+  }));
+
+  const exhibitionDepts = DEPARTMENTS.map((d) => ({
+    id: d.id,
+    emoji: d.emoji,
+    nameTh: d.nameTh,
+    capacity: d.capacity,
+  }));
+
   return (
     <AdminDashboard
       rows={rows}
@@ -120,6 +152,8 @@ export default async function AdminPage({
       q={q}
       summary={summary}
       penaltyRows={penaltyRows}
+      exhibitionRows={exhibitionRows}
+      exhibitionDepts={exhibitionDepts}
     />
   );
 }

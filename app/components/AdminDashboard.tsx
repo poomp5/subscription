@@ -4,9 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { SubmissionRow } from "../lib/db";
 import PenaltyManager, { type StudentPenaltyRow } from "./PenaltyManager";
+import ExhibitionManager, {
+  type ExhibitionChoiceRow,
+  type ExhibitionDept,
+} from "./ExhibitionManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
-type Tab = Status | "PENALTIES";
+type Tab = Status | "PENALTIES" | "EXHIBITION";
 
 type Summary = {
   ALL: number;
@@ -29,12 +33,16 @@ export default function AdminDashboard({
   q,
   summary,
   penaltyRows,
+  exhibitionRows,
+  exhibitionDepts,
 }: {
   rows: SubmissionRow[];
   status: Status;
   q: string;
   summary: Summary;
   penaltyRows: StudentPenaltyRow[];
+  exhibitionRows: ExhibitionChoiceRow[];
+  exhibitionDepts: ExhibitionDept[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
@@ -116,11 +124,30 @@ export default function AdminDashboard({
           >
             จัดการค่าปรับ
           </button>
+          <button
+            onClick={() => setActiveTab("EXHIBITION")}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+              activeTab === "EXHIBITION"
+                ? "bg-primary text-white shadow-sm"
+                : "text-muted hover:bg-violet-50"
+            }`}
+          >
+            🎪 จัดนิทรรศการ
+            <span
+              className={`ml-1.5 text-[11px] ${
+                activeTab === "EXHIBITION" ? "text-white/80" : "text-violet-400"
+              }`}
+            >
+              {exhibitionRows.length}
+            </span>
+          </button>
         </div>
 
         {/* Content */}
         {activeTab === "PENALTIES" ? (
           <PenaltyManager rows={penaltyRows} />
+        ) : activeTab === "EXHIBITION" ? (
+          <ExhibitionManager rows={exhibitionRows} depts={exhibitionDepts} />
         ) : (
           <>
             <div className="mt-4 flex w-full max-w-sm items-center gap-2">
