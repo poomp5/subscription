@@ -19,12 +19,22 @@ export type ExhibitionDept = {
   capacity: number;
 };
 
+export type ExhibitionRoleRow = {
+  studentId: string;
+  title: string;
+  emoji: string;
+  nicknameTh: string;
+  fullNameTh: string;
+};
+
 export default function ExhibitionManager({
   rows,
   depts,
+  roles,
 }: {
   rows: ExhibitionChoiceRow[];
   depts: ExhibitionDept[];
+  roles: ExhibitionRoleRow[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -57,6 +67,35 @@ export default function ExhibitionManager({
         เลือกฝ่ายแล้ว <span className="font-semibold text-foreground">{total}</span> /{" "}
         {totalCapacity} คน
       </div>
+
+      {/* ทีมที่มีตำแหน่งกำหนดไว้ (ไม่ต้องเลือกฝ่าย) */}
+      {roles.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-border-default bg-white">
+          <div className="border-b border-border-default bg-surface-muted px-4 py-3 text-sm font-semibold text-foreground">
+            👑 ทีมหัวหน้า / ฝ่ายการเงิน{" "}
+            <span className="font-normal text-muted">(ไม่ต้องเลือกฝ่าย)</span>
+          </div>
+          <ul className="grid gap-x-4 gap-y-px sm:grid-cols-2">
+            {roles.map((r) => (
+              <li
+                key={r.studentId}
+                className="flex items-center gap-2.5 border-b border-border-default px-4 py-2.5 last:border-0"
+              >
+                <span className="text-lg">{r.emoji}</span>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">
+                    {r.title}
+                  </div>
+                  <div className="truncate text-xs text-muted">
+                    {r.nicknameTh} · <span className="font-mono">{r.studentId}</span>
+                    {r.fullNameTh ? ` · ${r.fullNameTh}` : ""}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {depts.map((dept) => {
