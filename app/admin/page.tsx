@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { isAdmin } from "../lib/admin";
 import { sql, type SubmissionRow } from "../lib/db";
 import { ensureSchema } from "../lib/schema";
-import { STUDENTS } from "../data/students";
+import { STUDENTS, findStudent } from "../data/students";
 import { DEPARTMENTS } from "../data/departments";
+import { EXHIBITION_ROLES } from "../data/roles";
 import AdminDashboard from "../components/AdminDashboard";
 import type { StudentPenaltyRow } from "../components/PenaltyManager";
 import type { ExhibitionChoiceRow } from "../components/ExhibitionManager";
@@ -145,6 +146,17 @@ export default async function AdminPage({
     capacity: d.capacity,
   }));
 
+  const exhibitionRoles = EXHIBITION_ROLES.map((r) => {
+    const s = findStudent(r.studentId);
+    return {
+      studentId: r.studentId,
+      title: r.title,
+      emoji: r.emoji,
+      nicknameTh: s?.nicknameTh ?? r.studentId,
+      fullNameTh: s ? `${s.firstNameTh} ${s.lastNameTh}` : "",
+    };
+  });
+
   return (
     <AdminDashboard
       rows={rows}
@@ -154,6 +166,7 @@ export default async function AdminPage({
       penaltyRows={penaltyRows}
       exhibitionRows={exhibitionRows}
       exhibitionDepts={exhibitionDepts}
+      exhibitionRoles={exhibitionRoles}
     />
   );
 }

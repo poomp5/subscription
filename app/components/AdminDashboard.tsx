@@ -7,6 +7,7 @@ import PenaltyManager, { type StudentPenaltyRow } from "./PenaltyManager";
 import ExhibitionManager, {
   type ExhibitionChoiceRow,
   type ExhibitionDept,
+  type ExhibitionRoleRow,
 } from "./ExhibitionManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
@@ -35,6 +36,7 @@ export default function AdminDashboard({
   penaltyRows,
   exhibitionRows,
   exhibitionDepts,
+  exhibitionRoles,
 }: {
   rows: SubmissionRow[];
   status: Status;
@@ -43,6 +45,7 @@ export default function AdminDashboard({
   penaltyRows: StudentPenaltyRow[];
   exhibitionRows: ExhibitionChoiceRow[];
   exhibitionDepts: ExhibitionDept[];
+  exhibitionRoles: ExhibitionRoleRow[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
@@ -147,7 +150,11 @@ export default function AdminDashboard({
         {activeTab === "PENALTIES" ? (
           <PenaltyManager rows={penaltyRows} />
         ) : activeTab === "EXHIBITION" ? (
-          <ExhibitionManager rows={exhibitionRows} depts={exhibitionDepts} />
+          <ExhibitionManager
+            rows={exhibitionRows}
+            depts={exhibitionDepts}
+            roles={exhibitionRoles}
+          />
         ) : (
           <>
             <div className="mt-4 flex w-full max-w-sm items-center gap-2">

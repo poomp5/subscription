@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { findStudent } from "../../data/students";
 import { DEPARTMENTS, findDepartment } from "../../data/departments";
+import { findRole } from "../../data/roles";
 import { sql } from "../../lib/db";
 import { ensureSchema } from "../../lib/schema";
 import { notifyDiscord } from "../../lib/discord";
@@ -57,6 +58,15 @@ export async function POST(request: NextRequest) {
   const student = body.studentId ? findStudent(body.studentId) : undefined;
   if (!student) {
     return Response.json({ ok: false, error: "ไม่พบนักเรียน" }, { status: 400 });
+  }
+
+  // คนที่มีตำแหน่งกำหนดไว้แล้ว ไม่ต้อง/ห้ามเลือกฝ่าย
+  const role = findRole(student.studentId);
+  if (role) {
+    return Response.json(
+      { ok: false, error: `คุณมีตำแหน่ง ${role.title} อยู่แล้ว ไม่ต้องเลือกฝ่าย` },
+      { status: 403 },
+    );
   }
 
   const dept = body.departmentId ? findDepartment(body.departmentId) : undefined;
