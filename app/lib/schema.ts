@@ -63,6 +63,20 @@ export function ensureSchema(): Promise<void> {
       `;
       await sql`CREATE INDEX IF NOT EXISTS pen_sub_student_idx ON penalty_submissions (student_id)`;
       await sql`CREATE INDEX IF NOT EXISTS pen_sub_status_idx  ON penalty_submissions (status)`;
+
+      // การเลือกฝ่ายจัดนิทรรศการ — นักเรียนหนึ่งคนเลือกได้หนึ่งฝ่าย
+      await sql`
+        CREATE TABLE IF NOT EXISTS exhibition_choices (
+          id            BIGSERIAL PRIMARY KEY,
+          student_id    TEXT NOT NULL UNIQUE,
+          student_no    INTEGER NOT NULL,
+          nickname_th   TEXT NOT NULL,
+          full_name_th  TEXT NOT NULL,
+          department_id TEXT NOT NULL,
+          created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS exh_dept_idx ON exhibition_choices (department_id)`;
     })().catch((err) => {
       initialized = null;
       throw err;
