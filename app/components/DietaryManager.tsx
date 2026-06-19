@@ -10,6 +10,9 @@ import {
   CircleCheck,
   CircleDashed,
   Pencil,
+  FileText,
+  FileSpreadsheet,
+  FileType,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -67,7 +70,37 @@ export default function DietaryManager({ rows }: { rows: DietaryRow[] }) {
   }));
 
   return (
-    <div className="mt-5 space-y-4">
+    <div className="space-y-4">
+      {/* แถบ export */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-default bg-white px-4 py-3">
+        <div className="text-sm text-muted">
+          ดาวน์โหลดข้อมูลด้านอาหารทั้งหมด ({rows.length} คน)
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/api/admin/dietary/export?format=csv"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            CSV
+          </a>
+          <a
+            href="/api/admin/dietary/export?format=xlsx"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition hover:bg-green-100"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            Excel
+          </a>
+          <a
+            href="/api/admin/dietary/export?format=pdf"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+          >
+            <FileType className="h-3.5 w-3.5" />
+            PDF
+          </a>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <SummaryCard label="กรอกแล้ว" value={`${filled.length}/${rows.length}`} />
         <SummaryCard label="มีข้อจำกัด" value={withRestriction} />

@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // ให้ Next ไม่ bundle libs ฝั่ง server เหล่านี้ (อ่านไฟล์ font/asset ภายในตอน runtime)
+  serverExternalPackages: ["pdfkit", "exceljs"],
   images: {
     remotePatterns,
   },

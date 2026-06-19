@@ -2,7 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { UtensilsCrossed, Tent } from "lucide-react";
+import {
+  UtensilsCrossed,
+  Tent,
+  LayoutDashboard,
+  Wallet,
+  CircleAlert,
+  LogOut,
+  Menu,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import type { SubmissionRow } from "../lib/db";
 import PenaltyManager, { type StudentPenaltyRow } from "./PenaltyManager";
 import ExhibitionManager, {
@@ -13,7 +23,7 @@ import ExhibitionManager, {
 import DietaryManager, { type DietaryRow } from "./DietaryManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
-type Tab = Status | "PENALTIES" | "EXHIBITION" | "DIETARY";
+type Tab = "DASHBOARD" | "SUBMISSIONS" | "PENALTIES" | "EXHIBITION" | "DIETARY";
 
 type Summary = {
   ALL: number;
@@ -28,6 +38,14 @@ const SUBMISSION_TABS: { key: Status; label: string }[] = [
   { key: "APPROVED", label: "อนุมัติแล้ว" },
   { key: "REJECTED", label: "ปฏิเสธ" },
   { key: "ALL", label: "ทั้งหมด" },
+];
+
+const NAV: { key: Tab; label: string; icon: LucideIcon }[] = [
+  { key: "DASHBOARD", label: "ภาพรวม", icon: LayoutDashboard },
+  { key: "SUBMISSIONS", label: "รายการชำระเงิน", icon: Wallet },
+  { key: "PENALTIES", label: "จัดการค่าปรับ", icon: CircleAlert },
+  { key: "EXHIBITION", label: "จัดนิทรรศการ", icon: Tent },
+  { key: "DIETARY", label: "ข้อมูลอาหาร", icon: UtensilsCrossed },
 ];
 
 export default function AdminDashboard({
@@ -55,17 +73,28 @@ export default function AdminDashboard({
   const [search, setSearch] = useState(q);
   const [, startTransition] = useTransition();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>(status);
+  // ถ้ามี query (status/q) ให้เปิดหน้าชำระเงิน, ไม่งั้นเริ่มที่ภาพรวม
+  const [activeTab, setActiveTab] = useState<Tab>(
+    status !== "ALL" || q ? "SUBMISSIONS" : "DASHBOARD",
+  );
+  const [subStatus, setSubStatus] = useState<Status>(status);
+  const [navOpen, setNavOpen] = useState(false);
 
   function go(nextStatus: Status, nextQ: string) {
     const params = new URLSearchParams();
     if (nextStatus !== "ALL") params.set("status", nextStatus);
     if (nextQ) params.set("q", nextQ);
     const qs = params.toString();
-    setActiveTab(nextStatus);
+    setSubStatus(nextStatus);
+    setActiveTab("SUBMISSIONS");
     startTransition(() => {
       router.push(`/admin${qs ? `?${qs}` : ""}`);
     });
+  }
+
+  function selectTab(tab: Tab) {
+    setActiveTab(tab);
+    setNavOpen(false);
   }
 
   async function logout() {
@@ -74,121 +103,160 @@ export default function AdminDashboard({
     router.refresh();
   }
 
+  const dietaryFilled = dietaryRows.filter((r) => r.restrictions !== null).length;
+  const badge: Partial<Record<Tab, number>> = {
+    SUBMISSIONS: summary.PENDING,
+    EXHIBITION: exhibitionRows.length,
+    DIETARY: dietaryFilled,
+  };
+
+  const activeLabel = NAV.find((n) => n.key === activeTab)?.label ?? "";
+
   return (
-    <main className="flex flex-1 flex-col px-5 py-8 sm:px-8">
-      <div className="mx-auto w-full max-w-7xl">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-1">
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col overflow-y-auto border-r border-border-default bg-white transition-transform lg:sticky lg:top-0 lg:translate-x-0 ${
+          navOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 py-5">
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-violet-500">Admin</div>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-              <span className="text-primary">DS Premium</span> · Dashboard
-            </h1>
+            <div className="text-xs uppercase tracking-[0.2em] text-violet-500">Dashboard</div>
+            <div className="mt-0.5 text-lg font-semibold tracking-tight text-foreground">
+              <span className="text-primary">บริหารดีเอส</span>
+            </div>
           </div>
           <button
-            onClick={logout}
-            className="rounded-xl border border-border-default bg-white px-4 py-2 text-sm text-foreground transition hover:bg-violet-50"
+            onClick={() => setNavOpen(false)}
+            className="rounded-lg p-1.5 text-muted hover:bg-violet-50 lg:hidden"
+            aria-label="ปิดเมนู"
           >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 px-3">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            const active = activeTab === item.key;
+            const count = badge[item.key];
+            return (
+              <button
+                key={item.key}
+                onClick={() => selectTab(item.key)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                  active
+                    ? "bg-primary text-white shadow-sm shadow-violet-200"
+                    : "text-muted hover:bg-violet-50 hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">{item.label}</span>
+                {count != null && count > 0 && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                      active ? "bg-white/20 text-white" : "bg-violet-100 text-violet-600"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-border-default p-3">
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-rose-50 hover:text-rose-600"
+          >
+            <LogOut className="h-4 w-4" />
             ออกจากระบบ
           </button>
         </div>
+      </aside>
 
-        {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="ทั้งหมด" value={summary.TOTAL} tone="violet" />
-          <StatCard label="รอตรวจสอบ" value={summary.PENDING} tone="amber" />
-          <StatCard label="อนุมัติแล้ว" value={summary.APPROVED} tone="emerald" />
-          <StatCard label="ปฏิเสธ" value={summary.REJECTED} tone="rose" />
+      {/* Backdrop (mobile) */}
+      {navOpen && (
+        <div
+          onClick={() => setNavOpen(false)}
+          className="fixed inset-0 z-30 bg-violet-950/30 backdrop-blur-sm lg:hidden"
+        />
+      )}
+
+      {/* Main */}
+      <main className="flex min-w-0 flex-1 flex-col">
+        {/* Topbar — ติดด้านบนเวลาเลื่อน */}
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border-default bg-white/80 px-5 py-3.5 backdrop-blur sm:px-8">
+          <button
+            onClick={() => setNavOpen(true)}
+            className="rounded-lg p-1.5 text-muted hover:bg-violet-50 lg:hidden"
+            aria-label="เปิดเมนู"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">{activeLabel}</h1>
         </div>
 
-        {/* Tab bar */}
-        <div className="mt-6 flex flex-wrap gap-1.5 rounded-xl border border-border-default bg-white p-1 w-fit">
-          {SUBMISSION_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => go(tab.key, search)}
-              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
-                activeTab === tab.key
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted hover:bg-violet-50"
-              }`}
-            >
-              {tab.label}
-              {tab.key !== "ALL" && (
-                <span className={`ml-1.5 text-[11px] ${activeTab === tab.key ? "text-white/80" : "text-violet-400"}`}>
-                  {summary[tab.key]}
-                </span>
-              )}
-            </button>
-          ))}
-          <button
-            onClick={() => setActiveTab("PENALTIES")}
-            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
-              activeTab === "PENALTIES"
-                ? "bg-rose-600 text-white shadow-sm"
-                : "text-muted hover:bg-rose-50"
-            }`}
-          >
-            จัดการค่าปรับ
-          </button>
-          <button
-            onClick={() => setActiveTab("EXHIBITION")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
-              activeTab === "EXHIBITION"
-                ? "bg-primary text-white shadow-sm"
-                : "text-muted hover:bg-violet-50"
-            }`}
-          >
-            <Tent className="h-4 w-4" />
-            จัดนิทรรศการ
-            <span
-              className={`text-[11px] ${
-                activeTab === "EXHIBITION" ? "text-white/80" : "text-violet-400"
-              }`}
-            >
-              {exhibitionRows.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("DIETARY")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
-              activeTab === "DIETARY"
-                ? "bg-primary text-white shadow-sm"
-                : "text-muted hover:bg-violet-50"
-            }`}
-          >
-            <UtensilsCrossed className="h-4 w-4" />
-            ข้อมูลอาหาร
-            <span
-              className={`text-[11px] ${
-                activeTab === "DIETARY" ? "text-white/80" : "text-violet-400"
-              }`}
-            >
-              {dietaryRows.filter((r) => r.restrictions !== null).length}
-            </span>
-          </button>
-        </div>
+        <div className="flex-1 px-5 py-6 sm:px-8">
+          {activeTab === "DASHBOARD" && (
+            <DashboardOverview
+              summary={summary}
+              exhibitionCount={exhibitionRows.length}
+              dietaryFilled={dietaryFilled}
+              dietaryTotal={dietaryRows.length}
+              onGo={selectTab}
+            />
+          )}
 
-        {/* Content */}
-        {activeTab === "PENALTIES" ? (
-          <PenaltyManager rows={penaltyRows} />
-        ) : activeTab === "EXHIBITION" ? (
-          <ExhibitionManager
-            rows={exhibitionRows}
-            depts={exhibitionDepts}
-            roles={exhibitionRoles}
-          />
-        ) : activeTab === "DIETARY" ? (
-          <DietaryManager rows={dietaryRows} />
-        ) : (
-          <>
-            <div className="mt-4 flex w-full max-w-sm items-center gap-2">
+          {activeTab === "PENALTIES" && <PenaltyManager rows={penaltyRows} />}
+
+          {activeTab === "EXHIBITION" && (
+            <ExhibitionManager
+              rows={exhibitionRows}
+              depts={exhibitionDepts}
+              roles={exhibitionRoles}
+            />
+          )}
+
+          {activeTab === "DIETARY" && <DietaryManager rows={dietaryRows} />}
+
+          {activeTab === "SUBMISSIONS" && (
+            <div className="space-y-4">
+              {/* filter chips */}
+              <div className="flex flex-wrap gap-1.5 rounded-xl border border-border-default bg-white p-1 w-fit">
+                {SUBMISSION_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => go(tab.key, search)}
+                    className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+                      subStatus === tab.key
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-muted hover:bg-violet-50"
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.key !== "ALL" && (
+                      <span
+                        className={`ml-1.5 text-[11px] ${
+                          subStatus === tab.key ? "text-white/80" : "text-violet-400"
+                        }`}
+                      >
+                        {summary[tab.key]}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  go(activeTab as Status, search.trim());
+                  go(subStatus, search.trim());
                 }}
-                className="flex w-full items-center gap-2"
+                className="flex w-full max-w-sm items-center gap-2"
               >
                 <input
                   type="text"
@@ -204,42 +272,124 @@ export default function AdminDashboard({
                   ค้นหา
                 </button>
               </form>
-            </div>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-border-default bg-white">
-              <div className="hidden grid-cols-[110px_1fr_140px_120px_110px_130px_180px] gap-3 border-b border-border-default bg-surface-muted px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
-                <div>วันที่</div>
-                <div>นักเรียน</div>
-                <div>แพ็กเกจ</div>
-                <div className="text-right">ยอด</div>
-                <div>สลิป</div>
-                <div>สถานะ</div>
-                <div className="text-right">การจัดการ</div>
-              </div>
-
-              {rows.length === 0 && (
-                <div className="px-4 py-16 text-center text-sm text-muted">
-                  ยังไม่มีรายการในช่องนี้
+              <div className="overflow-hidden rounded-2xl border border-border-default bg-white">
+                <div className="hidden grid-cols-[110px_1fr_140px_120px_110px_130px_180px] gap-3 border-b border-border-default bg-surface-muted px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
+                  <div>วันที่</div>
+                  <div>นักเรียน</div>
+                  <div>แพ็กเกจ</div>
+                  <div className="text-right">ยอด</div>
+                  <div>สลิป</div>
+                  <div>สถานะ</div>
+                  <div className="text-right">การจัดการ</div>
                 </div>
-              )}
 
-              {rows.map((row) => (
-                <SubmissionRow
-                  key={row.id}
-                  row={row}
-                  onPreview={setPreviewUrl}
-                  onChange={() => router.refresh()}
-                />
-              ))}
+                {rows.length === 0 && (
+                  <div className="px-4 py-16 text-center text-sm text-muted">
+                    ยังไม่มีรายการในช่องนี้
+                  </div>
+                )}
+
+                {rows.map((row) => (
+                  <SubmissionRow
+                    key={row.id}
+                    row={row}
+                    onPreview={setPreviewUrl}
+                    onChange={() => router.refresh()}
+                  />
+                ))}
+              </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
 
       {previewUrl && (
         <SlipPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
       )}
-    </main>
+    </div>
+  );
+}
+
+function DashboardOverview({
+  summary,
+  exhibitionCount,
+  dietaryFilled,
+  dietaryTotal,
+  onGo,
+}: {
+  summary: Summary;
+  exhibitionCount: number;
+  dietaryFilled: number;
+  dietaryTotal: number;
+  onGo: (tab: Tab) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="รายการทั้งหมด" value={summary.TOTAL} tone="violet" />
+        <StatCard label="รอตรวจสอบ" value={summary.PENDING} tone="amber" />
+        <StatCard label="อนุมัติแล้ว" value={summary.APPROVED} tone="emerald" />
+        <StatCard label="ปฏิเสธ" value={summary.REJECTED} tone="rose" />
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">ทางลัด</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ShortcutCard
+            icon={Wallet}
+            title="รายการชำระเงิน"
+            desc={`${summary.PENDING} รายการรอตรวจสอบ`}
+            onClick={() => onGo("SUBMISSIONS")}
+          />
+          <ShortcutCard
+            icon={CircleAlert}
+            title="จัดการค่าปรับ"
+            desc="ดูและปรับยอดค่าปรับรายคน"
+            onClick={() => onGo("PENALTIES")}
+          />
+          <ShortcutCard
+            icon={Tent}
+            title="จัดนิทรรศการ"
+            desc={`เลือกฝ่ายแล้ว ${exhibitionCount} คน`}
+            onClick={() => onGo("EXHIBITION")}
+          />
+          <ShortcutCard
+            icon={UtensilsCrossed}
+            title="ข้อมูลอาหาร"
+            desc={`กรอกแล้ว ${dietaryFilled}/${dietaryTotal} คน`}
+            onClick={() => onGo("DIETARY")}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShortcutCard({
+  icon: Icon,
+  title,
+  desc,
+  onClick,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="group flex items-center gap-3 rounded-2xl border border-border-default bg-white p-4 text-left transition hover:border-violet-300 hover:bg-violet-50/50"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-foreground">{title}</span>
+        <span className="block text-xs text-muted">{desc}</span>
+      </span>
+    </button>
   );
 }
 
