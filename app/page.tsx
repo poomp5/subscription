@@ -10,10 +10,10 @@ export default function Home() {
             Digital Science · GEN 3
           </div>
           <h1 className="mt-5 text-3xl font-semibold tracking-tight text-violet-900 sm:text-4xl">
-            Premium Package
+            ระบบภายในห้อง
           </h1>
           <p className="mt-2 text-sm leading-6 text-(--muted)">
-            ระบบเก็บเงินห้องประจำปี 2569
+            วิทยการดิจิทัล - ประจำปี 2569
           </p>
         </div>
 
