@@ -1,5 +1,4 @@
-import LoginForm from "./components/LoginForm";
-import ExhibitionEntry from "./components/ExhibitionEntry";
+import MainMenu from "./components/MainMenu";
 
 export default function Home() {
   return (
@@ -18,9 +17,7 @@ export default function Home() {
           </p>
         </div>
 
-        <LoginForm />
-
-        <ExhibitionEntry />
+        <MainMenu />
 
         <p className="mt-6 text-center text-xs text-(--muted)">
           เฉพาะนักเรียนในรายชื่อ ม.6/9 ปี 2569 เท่านั้น

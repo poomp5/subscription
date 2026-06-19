@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { UtensilsCrossed } from "lucide-react";
 import type { SubmissionRow } from "../lib/db";
 import PenaltyManager, { type StudentPenaltyRow } from "./PenaltyManager";
 import ExhibitionManager, {
@@ -9,9 +10,10 @@ import ExhibitionManager, {
   type ExhibitionDept,
   type ExhibitionRoleRow,
 } from "./ExhibitionManager";
+import DietaryManager, { type DietaryRow } from "./DietaryManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
-type Tab = Status | "PENALTIES" | "EXHIBITION";
+type Tab = Status | "PENALTIES" | "EXHIBITION" | "DIETARY";
 
 type Summary = {
   ALL: number;
@@ -37,6 +39,7 @@ export default function AdminDashboard({
   exhibitionRows,
   exhibitionDepts,
   exhibitionRoles,
+  dietaryRows,
 }: {
   rows: SubmissionRow[];
   status: Status;
@@ -46,6 +49,7 @@ export default function AdminDashboard({
   exhibitionRows: ExhibitionChoiceRow[];
   exhibitionDepts: ExhibitionDept[];
   exhibitionRoles: ExhibitionRoleRow[];
+  dietaryRows: DietaryRow[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
@@ -144,6 +148,24 @@ export default function AdminDashboard({
               {exhibitionRows.length}
             </span>
           </button>
+          <button
+            onClick={() => setActiveTab("DIETARY")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+              activeTab === "DIETARY"
+                ? "bg-primary text-white shadow-sm"
+                : "text-muted hover:bg-violet-50"
+            }`}
+          >
+            <UtensilsCrossed className="h-4 w-4" />
+            ข้อมูลอาหาร
+            <span
+              className={`text-[11px] ${
+                activeTab === "DIETARY" ? "text-white/80" : "text-violet-400"
+              }`}
+            >
+              {dietaryRows.filter((r) => r.restrictions !== null).length}
+            </span>
+          </button>
         </div>
 
         {/* Content */}
@@ -155,6 +177,8 @@ export default function AdminDashboard({
             depts={exhibitionDepts}
             roles={exhibitionRoles}
           />
+        ) : activeTab === "DIETARY" ? (
+          <DietaryManager rows={dietaryRows} />
         ) : (
           <>
             <div className="mt-4 flex w-full max-w-sm items-center gap-2">

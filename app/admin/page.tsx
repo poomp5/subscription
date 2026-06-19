@@ -5,9 +5,11 @@ import { ensureSchema } from "../lib/schema";
 import { STUDENTS, findStudent } from "../data/students";
 import { DEPARTMENTS } from "../data/departments";
 import { EXHIBITION_ROLES } from "../data/roles";
+import { isDietaryId, type DietaryId } from "../data/dietary";
 import AdminDashboard from "../components/AdminDashboard";
 import type { StudentPenaltyRow } from "../components/PenaltyManager";
 import type { ExhibitionChoiceRow } from "../components/ExhibitionManager";
+import type { DietaryRow } from "../components/DietaryManager";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +44,7 @@ export default async function AdminPage({
     : "ALL";
   const q = (qRaw || "").trim();
 
-  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw] = await Promise.all([
+  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw, dietaryRaw] = await Promise.all([
     status === "ALL" && !q
       ? sql`SELECT * FROM submissions ORDER BY created_at DESC LIMIT 500`
       : status === "ALL" && q
@@ -78,6 +80,11 @@ export default async function AdminPage({
       SELECT student_id, student_no, nickname_th, full_name_th, department_id, created_at
       FROM exhibition_choices
       ORDER BY created_at ASC
+    `,
+    sql`
+      SELECT student_id, COALESCE(restrictions, '[]'::jsonb) AS restrictions,
+             COALESCE(other_note, '') AS other_note
+      FROM dietary_choices
     `,
   ]);
 
@@ -157,6 +164,34 @@ export default async function AdminPage({
     };
   });
 
+  const dietaryMap = new Map(
+    (
+      dietaryRaw as unknown as Array<{
+        student_id: string;
+        restrictions: string[];
+        other_note: string;
+      }>
+    ).map((r) => [
+      r.student_id,
+      {
+        restrictions: (r.restrictions ?? []).filter(isDietaryId) as DietaryId[],
+        otherNote: r.other_note ?? "",
+      },
+    ]),
+  );
+
+  const dietaryRows: DietaryRow[] = STUDENTS.map((s) => {
+    const d = dietaryMap.get(s.studentId);
+    return {
+      studentId: s.studentId,
+      studentNo: s.no,
+      nicknameTh: s.nicknameTh,
+      fullNameTh: `${s.firstNameTh} ${s.lastNameTh}`,
+      restrictions: d ? d.restrictions : null,
+      otherNote: d?.otherNote ?? "",
+    };
+  });
+
   return (
     <AdminDashboard
       rows={rows}
@@ -167,6 +202,7 @@ export default async function AdminPage({
       exhibitionRows={exhibitionRows}
       exhibitionDepts={exhibitionDepts}
       exhibitionRoles={exhibitionRoles}
+      dietaryRows={dietaryRows}
     />
   );
 }
