@@ -27,7 +27,6 @@ export default async function DietaryPage({
     SELECT restrictions, other_note FROM dietary_choices WHERE student_id = ${student.studentId} LIMIT 1
   `;
   const row = rows[0] as { restrictions: string[]; other_note: string } | undefined;
-  const saved = !!row;
   const restrictions = ((row?.restrictions ?? []) as string[]).filter(isDietaryId) as DietaryId[];
   const otherNote = row?.other_note ?? "";
 
@@ -60,7 +59,6 @@ export default async function DietaryPage({
             studentId={student.studentId}
             initialRestrictions={restrictions}
             initialOtherNote={otherNote}
-            initialSaved={saved}
           />
         </section>
       </div>

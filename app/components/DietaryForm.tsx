@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Fish, Moon, Beef, Flame, Check, CircleCheck, Pencil, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import {
+  Fish,
+  Moon,
+  Beef,
+  Flame,
+  Check,
+  CircleCheck,
+  Pencil,
+  Home,
+  type LucideIcon,
+} from "lucide-react";
 import { DIETARY_OPTIONS, type DietaryId } from "../data/dietary";
 
 const ICONS: Record<DietaryOption["icon"], LucideIcon> = {
@@ -17,29 +28,26 @@ export default function DietaryForm({
   studentId,
   initialRestrictions,
   initialOtherNote,
-  initialSaved,
 }: {
   studentId: string;
   initialRestrictions: DietaryId[];
   initialOtherNote: string;
-  initialSaved: boolean;
 }) {
   const [selected, setSelected] = useState<Set<DietaryId>>(
     () => new Set(initialRestrictions),
   );
   const [otherNote, setOtherNote] = useState(initialOtherNote);
-  const [saved, setSaved] = useState(initialSaved);
   const [savedRestrictions, setSavedRestrictions] = useState<DietaryId[]>(initialRestrictions);
   const [savedOtherNote, setSavedOtherNote] = useState(initialOtherNote);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // "ไม่แพ้อะไร" = ติ๊กแล้วล้างตัวเลือกทั้งหมด
   const noneSelected = selected.size === 0;
 
   function toggle(id: DietaryId) {
     setError(null);
-    setSaved(false);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -50,7 +58,6 @@ export default function DietaryForm({
 
   function pickNone() {
     setError(null);
-    setSaved(false);
     setSelected(new Set());
   }
 
@@ -68,9 +75,9 @@ export default function DietaryForm({
       });
       const data = (await res.json()) as { ok: boolean; error?: string };
       if (data.ok) {
-        setSaved(true);
         setSavedRestrictions(restrictions);
         setSavedOtherNote(note);
+        setShowSuccess(true);
       } else {
         setError(data.error ?? "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
       }
@@ -81,10 +88,71 @@ export default function DietaryForm({
     }
   }
 
-  const dirty =
-    selected.size !== savedRestrictions.length ||
-    savedRestrictions.some((id) => !selected.has(id)) ||
-    otherNote.trim() !== savedOtherNote.trim();
+  // หน้าบันทึกสำเร็จ
+  if (showSuccess) {
+    const savedOpts = savedRestrictions
+      .map((id) => DIETARY_OPTIONS.find((o) => o.id === id))
+      .filter((o): o is DietaryOption => !!o);
+    const hasAny = savedOpts.length > 0 || savedOtherNote.trim().length > 0;
+
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center fade-up">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+          <CircleCheck className="h-9 w-9 text-emerald-600" />
+        </div>
+        <h2 className="mt-4 text-2xl font-semibold text-emerald-900">บันทึกสำเร็จ</h2>
+        <p className="mt-1 text-sm text-emerald-700">บันทึกข้อมูลด้านอาหารเรียบร้อยแล้ว</p>
+
+        <div className="mt-5 rounded-xl border border-emerald-200 bg-white p-4 text-left">
+          {!hasAny ? (
+            <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+              <CircleCheck className="h-4 w-4 shrink-0" />
+              ไม่แพ้อะไร / ไม่มีข้อจำกัด
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {savedOpts.map((opt) => {
+                const Icon = ICONS[opt.icon];
+                return (
+                  <span
+                    key={opt.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700"
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {opt.nameTh}
+                  </span>
+                );
+              })}
+              {savedOtherNote.trim() && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                  <Pencil className="h-3.5 w-3.5" />
+                  {savedOtherNote.trim()}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setShowSuccess(false)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white px-5 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
+          >
+            <Pencil className="h-4 w-4" />
+            แก้ไขข้อมูล
+          </button>
+          <Link
+            href="/"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-200 transition hover:bg-violet-700"
+          >
+            <Home className="h-4 w-4" />
+            กลับหน้าแรก
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -92,13 +160,6 @@ export default function DietaryForm({
         <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
         </p>
-      )}
-
-      {saved && !dirty && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-          <CircleCheck className="h-4 w-4 shrink-0" />
-          <span>บันทึกข้อมูลด้านอาหารเรียบร้อยแล้ว</span>
-        </div>
       )}
 
       <div className="grid gap-3">
@@ -200,7 +261,6 @@ export default function DietaryForm({
           onChange={(e) => {
             setOtherNote(e.target.value);
             setError(null);
-            setSaved(false);
           }}
           className="mt-2 block w-full resize-none rounded-xl border border-violet-200 bg-white px-3 py-2.5 text-sm text-foreground outline-none transition placeholder:text-violet-300 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
         />
@@ -210,10 +270,10 @@ export default function DietaryForm({
       <button
         type="button"
         onClick={save}
-        disabled={submitting || (saved && !dirty)}
+        disabled={submitting}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md shadow-violet-200 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {submitting ? "กำลังบันทึก…" : saved && !dirty ? "บันทึกแล้ว" : "บันทึกข้อมูล"}
+        {submitting ? "กำลังบันทึก…" : "บันทึกข้อมูล"}
       </button>
     </div>
   );

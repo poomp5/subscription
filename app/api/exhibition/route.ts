@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { findStudent } from "../../data/students";
 import { DEPARTMENTS, findDepartment } from "../../data/departments";
 import { findRole } from "../../data/roles";
@@ -130,15 +130,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  notifyDiscord({
-    title: "🎪 เลือกฝ่ายจัดนิทรรศการ",
-    description: `**${student.nicknameTh}** (${fullNameTh})`,
-    color: 0x7c3aed,
-    fields: [
-      { name: "ฝ่าย", value: `${dept.emoji} ${dept.nameTh}`, inline: true },
-      { name: "จำนวนในฝ่าย", value: `${counts[dept.id]}/${dept.capacity}`, inline: true },
-    ],
-  });
+  after(() =>
+    notifyDiscord({
+      title: "🎪 เลือกฝ่ายจัดนิทรรศการ",
+      description: `**${student.nicknameTh}** (${fullNameTh})`,
+      color: 0x7c3aed,
+      fields: [
+        { name: "ฝ่าย", value: `${dept.emoji} ${dept.nameTh}`, inline: true },
+        { name: "จำนวนในฝ่าย", value: `${counts[dept.id]}/${dept.capacity}`, inline: true },
+      ],
+    }),
+  );
 
   return Response.json({ ok: true, departmentId: dept.id, counts });
 }

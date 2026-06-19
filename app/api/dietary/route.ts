@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { findStudent } from "../../data/students";
 import { DIETARY_OPTIONS, isDietaryId } from "../../data/dietary";
 import { sql } from "../../lib/db";
@@ -98,12 +98,15 @@ export async function POST(request: NextRequest) {
   const fields = [{ name: "ข้อจำกัด", value: labels }];
   if (otherNote) fields.push({ name: "อื่นๆ", value: otherNote });
 
-  notifyDiscord({
-    title: "บันทึกข้อมูลด้านอาหาร",
-    description: `**${student.nicknameTh}** (${fullNameTh})`,
-    color: 0x7c3aed,
-    fields,
-  });
+  // ยิง Discord หลังตอบ response แล้ว เพื่อไม่ให้ผู้ใช้ต้องรอ
+  after(() =>
+    notifyDiscord({
+      title: "บันทึกข้อมูลด้านอาหาร",
+      description: `**${student.nicknameTh}** (${fullNameTh})`,
+      color: 0x7c3aed,
+      fields,
+    }),
+  );
 
   return Response.json({ ok: true, restrictions, otherNote });
 }
