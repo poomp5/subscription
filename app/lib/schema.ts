@@ -89,12 +89,21 @@ export function ensureSchema(): Promise<void> {
           full_name_th  TEXT NOT NULL,
           restrictions  JSONB NOT NULL DEFAULT '[]',
           other_note    TEXT NOT NULL DEFAULT '',
+          seafood_items JSONB NOT NULL DEFAULT '[]',
+          seafood_other TEXT NOT NULL DEFAULT '',
           updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `;
-      // migrate existing rows that were created before other_note was added
+      // migrate existing rows that were created before these columns were added
+      // (ADD COLUMN IF NOT EXISTS + DEFAULT จึงไม่กระทบข้อมูลเดิมที่กรอกไว้แล้ว)
       await sql`
         ALTER TABLE dietary_choices ADD COLUMN IF NOT EXISTS other_note TEXT NOT NULL DEFAULT ''
+      `;
+      await sql`
+        ALTER TABLE dietary_choices ADD COLUMN IF NOT EXISTS seafood_items JSONB NOT NULL DEFAULT '[]'
+      `;
+      await sql`
+        ALTER TABLE dietary_choices ADD COLUMN IF NOT EXISTS seafood_other TEXT NOT NULL DEFAULT ''
       `;
     })().catch((err) => {
       initialized = null;

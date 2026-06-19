@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Tent } from "lucide-react";
 import ExhibitionLoginForm from "./ExhibitionLoginForm";
 
 export default function ExhibitionEntry() {
@@ -22,7 +23,8 @@ export default function ExhibitionEntry() {
       onClick={() => setOpen(true)}
       className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-300 bg-white px-5 py-3 text-sm font-semibold text-violet-700 shadow-sm transition hover:border-violet-400 hover:bg-violet-50"
     >
-      🎪 เลือกฝ่ายจัดนิทรรศการ
+      <Tent className="h-4 w-4" />
+      เลือกฝ่ายจัดนิทรรศการ
     </button>
   );
 }

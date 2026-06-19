@@ -1,8 +1,11 @@
 export type DepartmentId = "content" | "art" | "activity";
 
+/** ชื่อไอคอน lucide-react ของแต่ละฝ่าย */
+export type DepartmentIcon = "BookOpen" | "Palette" | "Target";
+
 export type Department = {
   id: DepartmentId;
-  emoji: string;
+  icon: DepartmentIcon;
   nameTh: string;
   capacity: number;
   /** สรุปสั้น ๆ แสดงใต้ชื่อฝ่าย */
@@ -16,7 +19,7 @@ export type Department = {
 export const DEPARTMENTS: Department[] = [
   {
     id: "content",
-    emoji: "📚",
+    icon: "BookOpen",
     nameTh: "ฝ่ายเนื้อหา",
     capacity: 10,
     summary: "ค้นข้อมูลนิราศ ทำบทความ ป้ายความรู้ และตรวจความถูกต้อง",
@@ -28,7 +31,7 @@ export const DEPARTMENTS: Department[] = [
   },
   {
     id: "art",
-    emoji: "🎨",
+    icon: "Palette",
     nameTh: "ฝ่ายศิลป์",
     capacity: 10,
     summary: "ทำบอร์ด ตกแต่ง ออกแบบอินโฟกราฟิก และจัดสถานที่",
@@ -40,7 +43,7 @@ export const DEPARTMENTS: Department[] = [
   },
   {
     id: "activity",
-    emoji: "🎯",
+    icon: "Target",
     nameTh: "ฝ่ายกิจกรรม",
     capacity: 10,
     summary: "ดูแลเกมและฐานกิจกรรมภายในนิทรรศการ",

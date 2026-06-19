@@ -45,3 +45,28 @@ export function findDietary(id: string): DietaryOption | undefined {
 export function isDietaryId(id: string): id is DietaryId {
   return DIETARY_BY_ID.has(id as DietaryId);
 }
+
+// รายการย่อยของอาหารทะเล — แสดงเมื่อเลือก "แพ้อาหารทะเล"
+export type SeafoodItemId = "shrimp" | "fish" | "squid" | "crab";
+
+export type SeafoodItem = {
+  id: SeafoodItemId;
+  nameTh: string;
+};
+
+export const SEAFOOD_ITEMS: SeafoodItem[] = [
+  { id: "shrimp", nameTh: "กุ้ง" },
+  { id: "fish", nameTh: "ปลา" },
+  { id: "squid", nameTh: "หมึก" },
+  { id: "crab", nameTh: "ปู" },
+];
+
+const SEAFOOD_BY_ID = new Map(SEAFOOD_ITEMS.map((s) => [s.id, s]));
+
+export function findSeafoodItem(id: string): SeafoodItem | undefined {
+  return SEAFOOD_BY_ID.get(id as SeafoodItemId);
+}
+
+export function isSeafoodItemId(id: string): id is SeafoodItemId {
+  return SEAFOOD_BY_ID.has(id as SeafoodItemId);
+}

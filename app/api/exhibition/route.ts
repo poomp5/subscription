@@ -132,11 +132,11 @@ export async function POST(request: NextRequest) {
 
   after(() =>
     notifyDiscord({
-      title: "🎪 เลือกฝ่ายจัดนิทรรศการ",
+      title: "เลือกฝ่ายจัดนิทรรศการ",
       description: `**${student.nicknameTh}** (${fullNameTh})`,
       color: 0x7c3aed,
       fields: [
-        { name: "ฝ่าย", value: `${dept.emoji} ${dept.nameTh}`, inline: true },
+        { name: "ฝ่าย", value: dept.nameTh, inline: true },
         { name: "จำนวนในฝ่าย", value: `${counts[dept.id]}/${dept.capacity}`, inline: true },
       ],
     }),

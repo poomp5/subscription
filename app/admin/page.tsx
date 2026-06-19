@@ -5,7 +5,12 @@ import { ensureSchema } from "../lib/schema";
 import { STUDENTS, findStudent } from "../data/students";
 import { DEPARTMENTS } from "../data/departments";
 import { EXHIBITION_ROLES } from "../data/roles";
-import { isDietaryId, type DietaryId } from "../data/dietary";
+import {
+  isDietaryId,
+  isSeafoodItemId,
+  type DietaryId,
+  type SeafoodItemId,
+} from "../data/dietary";
 import AdminDashboard from "../components/AdminDashboard";
 import type { StudentPenaltyRow } from "../components/PenaltyManager";
 import type { ExhibitionChoiceRow } from "../components/ExhibitionManager";
@@ -83,7 +88,9 @@ export default async function AdminPage({
     `,
     sql`
       SELECT student_id, COALESCE(restrictions, '[]'::jsonb) AS restrictions,
-             COALESCE(other_note, '') AS other_note
+             COALESCE(other_note, '') AS other_note,
+             COALESCE(seafood_items, '[]'::jsonb) AS seafood_items,
+             COALESCE(seafood_other, '') AS seafood_other
       FROM dietary_choices
     `,
   ]);
@@ -148,7 +155,7 @@ export default async function AdminPage({
 
   const exhibitionDepts = DEPARTMENTS.map((d) => ({
     id: d.id,
-    emoji: d.emoji,
+    icon: d.icon,
     nameTh: d.nameTh,
     capacity: d.capacity,
   }));
@@ -158,7 +165,7 @@ export default async function AdminPage({
     return {
       studentId: r.studentId,
       title: r.title,
-      emoji: r.emoji,
+      icon: r.icon,
       nicknameTh: s?.nicknameTh ?? r.studentId,
       fullNameTh: s ? `${s.firstNameTh} ${s.lastNameTh}` : "",
     };
@@ -170,12 +177,16 @@ export default async function AdminPage({
         student_id: string;
         restrictions: string[];
         other_note: string;
+        seafood_items: string[];
+        seafood_other: string;
       }>
     ).map((r) => [
       r.student_id,
       {
         restrictions: (r.restrictions ?? []).filter(isDietaryId) as DietaryId[],
         otherNote: r.other_note ?? "",
+        seafoodItems: (r.seafood_items ?? []).filter(isSeafoodItemId) as SeafoodItemId[],
+        seafoodOther: r.seafood_other ?? "",
       },
     ]),
   );
@@ -189,6 +200,8 @@ export default async function AdminPage({
       fullNameTh: `${s.firstNameTh} ${s.lastNameTh}`,
       restrictions: d ? d.restrictions : null,
       otherNote: d?.otherNote ?? "",
+      seafoodItems: d?.seafoodItems ?? [],
+      seafoodOther: d?.seafoodOther ?? "",
     };
   });
 

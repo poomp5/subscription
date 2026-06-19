@@ -13,7 +13,12 @@ import {
   Home,
   type LucideIcon,
 } from "lucide-react";
-import { DIETARY_OPTIONS, type DietaryId } from "../data/dietary";
+import {
+  DIETARY_OPTIONS,
+  SEAFOOD_ITEMS,
+  type DietaryId,
+  type SeafoodItemId,
+} from "../data/dietary";
 
 const ICONS: Record<DietaryOption["icon"], LucideIcon> = {
   Fish,
@@ -28,20 +33,32 @@ export default function DietaryForm({
   studentId,
   initialRestrictions,
   initialOtherNote,
+  initialSeafoodItems,
+  initialSeafoodOther,
 }: {
   studentId: string;
   initialRestrictions: DietaryId[];
   initialOtherNote: string;
+  initialSeafoodItems: SeafoodItemId[];
+  initialSeafoodOther: string;
 }) {
   const [selected, setSelected] = useState<Set<DietaryId>>(
     () => new Set(initialRestrictions),
   );
   const [otherNote, setOtherNote] = useState(initialOtherNote);
+  const [seafoodItems, setSeafoodItems] = useState<Set<SeafoodItemId>>(
+    () => new Set(initialSeafoodItems),
+  );
+  const [seafoodOther, setSeafoodOther] = useState(initialSeafoodOther);
   const [savedRestrictions, setSavedRestrictions] = useState<DietaryId[]>(initialRestrictions);
   const [savedOtherNote, setSavedOtherNote] = useState(initialOtherNote);
+  const [savedSeafoodItems, setSavedSeafoodItems] = useState<SeafoodItemId[]>(initialSeafoodItems);
+  const [savedSeafoodOther, setSavedSeafoodOther] = useState(initialSeafoodOther);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const seafoodSelected = selected.has("seafood");
 
   // "ไม่แพ้อะไร" = ติ๊กแล้วล้างตัวเลือกทั้งหมด
   const noneSelected = selected.size === 0;
@@ -61,22 +78,43 @@ export default function DietaryForm({
     setSelected(new Set());
   }
 
+  function toggleSeafood(id: SeafoodItemId) {
+    setError(null);
+    setSeafoodItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   async function save() {
     if (submitting) return;
     setError(null);
     setSubmitting(true);
     const restrictions = [...selected];
     const note = otherNote.trim();
+    // ส่งรายละเอียดอาหารทะเลเฉพาะเมื่อเลือกแพ้อาหารทะเล
+    const sfItems = seafoodSelected ? [...seafoodItems] : [];
+    const sfOther = seafoodSelected ? seafoodOther.trim() : "";
     try {
       const res = await fetch("/api/dietary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, restrictions, otherNote: note }),
+        body: JSON.stringify({
+          studentId,
+          restrictions,
+          otherNote: note,
+          seafoodItems: sfItems,
+          seafoodOther: sfOther,
+        }),
       });
       const data = (await res.json()) as { ok: boolean; error?: string };
       if (data.ok) {
         setSavedRestrictions(restrictions);
         setSavedOtherNote(note);
+        setSavedSeafoodItems(sfItems);
+        setSavedSeafoodOther(sfOther);
         setShowSuccess(true);
       } else {
         setError(data.error ?? "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
@@ -123,6 +161,25 @@ export default function DietaryForm({
                   </span>
                 );
               })}
+              {savedSeafoodItems.map((id) => {
+                const item = SEAFOOD_ITEMS.find((s) => s.id === id);
+                if (!item) return null;
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"
+                  >
+                    <Fish className="h-3.5 w-3.5" />
+                    {item.nameTh}
+                  </span>
+                );
+              })}
+              {savedSeafoodOther.trim() && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  <Fish className="h-3.5 w-3.5" />
+                  {savedSeafoodOther.trim()}
+                </span>
+              )}
               {savedOtherNote.trim() && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
                   <Pencil className="h-3.5 w-3.5" />
@@ -204,6 +261,63 @@ export default function DietaryForm({
           );
         })}
       </div>
+
+      {/* เลือกอาหารทะเลที่แพ้ — แสดงเมื่อเลือก "แพ้อาหารทะเล" */}
+      {seafoodSelected && (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50/60 p-4 fade-up">
+          <div className="flex items-center gap-2 text-sm font-semibold text-sky-900">
+            <Fish className="h-4 w-4 text-sky-600" />
+            แพ้อาหารทะเลอะไรบ้าง?
+          </div>
+          <p className="mt-0.5 text-xs text-muted">เลือกได้มากกว่าหนึ่งอย่าง</p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {SEAFOOD_ITEMS.map((item) => {
+              const active = seafoodItems.has(item.id);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => toggleSeafood(item.id)}
+                  aria-pressed={active}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition ${
+                    active
+                      ? "border-sky-400 bg-white shadow-sm"
+                      : "border-sky-200 bg-white hover:border-sky-300"
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                      active
+                        ? "border-sky-600 bg-sky-600 text-white"
+                        : "border-sky-300 bg-white text-transparent"
+                    }`}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-sm font-medium text-sky-900">{item.nameTh}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <label htmlFor="seafoodOther" className="mt-3 block text-xs font-medium text-sky-900">
+            อื่นๆ (ถ้ามี)
+          </label>
+          <input
+            id="seafoodOther"
+            type="text"
+            value={seafoodOther}
+            maxLength={200}
+            placeholder="เช่น หอย, แมงกะพรุน…"
+            onChange={(e) => {
+              setSeafoodOther(e.target.value);
+              setError(null);
+            }}
+            className="mt-1.5 block w-full rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-sky-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+          />
+        </div>
+      )}
 
       {/* ไม่แพ้อะไร */}
       <button

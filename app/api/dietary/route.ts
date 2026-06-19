@@ -1,6 +1,11 @@
 import { NextRequest, after } from "next/server";
 import { findStudent } from "../../data/students";
-import { DIETARY_OPTIONS, isDietaryId } from "../../data/dietary";
+import {
+  DIETARY_OPTIONS,
+  SEAFOOD_ITEMS,
+  isDietaryId,
+  isSeafoodItemId,
+} from "../../data/dietary";
 import { sql } from "../../lib/db";
 import { ensureSchema } from "../../lib/schema";
 import { notifyDiscord } from "../../lib/discord";
@@ -14,26 +19,42 @@ export async function GET(request: NextRequest) {
 
   let restrictions: string[] | null = null;
   let otherNote = "";
+  let seafoodItems: string[] = [];
+  let seafoodOther = "";
   let saved = false;
   if (id) {
     const rows = await sql`
-      SELECT restrictions, other_note FROM dietary_choices WHERE student_id = ${id} LIMIT 1
+      SELECT restrictions, other_note,
+             COALESCE(seafood_items, '[]'::jsonb) AS seafood_items,
+             COALESCE(seafood_other, '') AS seafood_other
+      FROM dietary_choices WHERE student_id = ${id} LIMIT 1
     `;
-    const row = rows[0] as { restrictions: string[]; other_note: string } | undefined;
+    const row = rows[0] as
+      | {
+          restrictions: string[];
+          other_note: string;
+          seafood_items: string[];
+          seafood_other: string;
+        }
+      | undefined;
     if (row) {
       saved = true;
       restrictions = row.restrictions ?? [];
       otherNote = row.other_note ?? "";
+      seafoodItems = row.seafood_items ?? [];
+      seafoodOther = row.seafood_other ?? "";
     }
   }
 
-  return Response.json({ saved, restrictions, otherNote });
+  return Response.json({ saved, restrictions, otherNote, seafoodItems, seafoodOther });
 }
 
 type SavePayload = {
   studentId?: string;
   restrictions?: unknown;
   otherNote?: unknown;
+  seafoodItems?: unknown;
+  seafoodOther?: unknown;
 };
 
 export async function POST(request: NextRequest) {
@@ -55,6 +76,17 @@ export async function POST(request: NextRequest) {
 
   const otherNote = (typeof body.otherNote === "string" ? body.otherNote : "").trim().slice(0, 300);
 
+  // รายละเอียดอาหารทะเล — เก็บเฉพาะเมื่อเลือก "แพ้อาหารทะเล" เท่านั้น
+  // ถ้าไม่ได้เลือก seafood ให้ล้างทิ้ง ป้องกันข้อมูลค้าง
+  const hasSeafood = restrictions.includes("seafood");
+  const rawSeafood = Array.isArray(body.seafoodItems) ? body.seafoodItems : [];
+  const seafoodItems = hasSeafood
+    ? [...new Set(rawSeafood.filter((x): x is string => typeof x === "string" && isSeafoodItemId(x)))]
+    : [];
+  const seafoodOther = hasSeafood
+    ? (typeof body.seafoodOther === "string" ? body.seafoodOther : "").trim().slice(0, 200)
+    : "";
+
   try {
     await ensureSchema();
   } catch (err) {
@@ -67,21 +99,26 @@ export async function POST(request: NextRequest) {
 
   const fullNameTh = `${student.firstNameTh} ${student.lastNameTh}`.trim();
   const json = JSON.stringify(restrictions);
+  const seafoodJson = JSON.stringify(seafoodItems);
 
   try {
     await sql`
       INSERT INTO dietary_choices (
-        student_id, student_no, nickname_th, full_name_th, restrictions, other_note, updated_at
+        student_id, student_no, nickname_th, full_name_th,
+        restrictions, other_note, seafood_items, seafood_other, updated_at
       )
       VALUES (
-        ${student.studentId}, ${student.no}, ${student.nicknameTh}, ${fullNameTh}, ${json}::jsonb, ${otherNote}, NOW()
+        ${student.studentId}, ${student.no}, ${student.nicknameTh}, ${fullNameTh},
+        ${json}::jsonb, ${otherNote}, ${seafoodJson}::jsonb, ${seafoodOther}, NOW()
       )
       ON CONFLICT (student_id) DO UPDATE SET
-        restrictions = EXCLUDED.restrictions,
-        other_note   = EXCLUDED.other_note,
-        nickname_th  = EXCLUDED.nickname_th,
-        full_name_th = EXCLUDED.full_name_th,
-        updated_at   = NOW()
+        restrictions  = EXCLUDED.restrictions,
+        other_note    = EXCLUDED.other_note,
+        seafood_items = EXCLUDED.seafood_items,
+        seafood_other = EXCLUDED.seafood_other,
+        nickname_th   = EXCLUDED.nickname_th,
+        full_name_th  = EXCLUDED.full_name_th,
+        updated_at    = NOW()
     `;
   } catch (err) {
     console.error("[dietary] save failed:", err);
@@ -96,6 +133,13 @@ export async function POST(request: NextRequest) {
           .join(", ");
 
   const fields = [{ name: "ข้อจำกัด", value: labels }];
+  if (hasSeafood && (seafoodItems.length > 0 || seafoodOther)) {
+    const seafoodLabels = [
+      ...seafoodItems.map((id) => SEAFOOD_ITEMS.find((s) => s.id === id)?.nameTh ?? id),
+      ...(seafoodOther ? [seafoodOther] : []),
+    ].join(", ");
+    fields.push({ name: "อาหารทะเลที่แพ้", value: seafoodLabels });
+  }
   if (otherNote) fields.push({ name: "อื่นๆ", value: otherNote });
 
   // ยิง Discord หลังตอบ response แล้ว เพื่อไม่ให้ผู้ใช้ต้องรอ
@@ -108,5 +152,5 @@ export async function POST(request: NextRequest) {
     }),
   );
 
-  return Response.json({ ok: true, restrictions, otherNote });
+  return Response.json({ ok: true, restrictions, otherNote, seafoodItems, seafoodOther });
 }

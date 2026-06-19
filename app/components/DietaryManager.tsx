@@ -12,7 +12,12 @@ import {
   Pencil,
   type LucideIcon,
 } from "lucide-react";
-import { DIETARY_OPTIONS, type DietaryId } from "../data/dietary";
+import {
+  DIETARY_OPTIONS,
+  SEAFOOD_ITEMS,
+  type DietaryId,
+  type SeafoodItemId,
+} from "../data/dietary";
 
 export type DietaryRow = {
   studentId: string;
@@ -22,6 +27,8 @@ export type DietaryRow = {
   /** null = ยังไม่ได้กรอกข้อมูล */
   restrictions: DietaryId[] | null;
   otherNote: string;
+  seafoodItems: SeafoodItemId[];
+  seafoodOther: string;
 };
 
 const ICONS: Record<string, LucideIcon> = { Fish, Moon, Beef, Flame };
@@ -127,13 +134,24 @@ export default function DietaryManager({ rows }: { rows: DietaryRow[] }) {
                         const opt = DIETARY_OPTIONS.find((o) => o.id === id);
                         if (!opt) return null;
                         const Icon = ICONS[opt.icon];
+                        // แพ้อาหารทะเล — แสดงรายละเอียดที่แพ้ในวงเล็บ
+                        let label = opt.nameTh;
+                        if (id === "seafood") {
+                          const detail = [
+                            ...r.seafoodItems.map(
+                              (sid) => SEAFOOD_ITEMS.find((s) => s.id === sid)?.nameTh ?? sid,
+                            ),
+                            ...(r.seafoodOther ? [r.seafoodOther] : []),
+                          ];
+                          if (detail.length > 0) label += ` (${detail.join(", ")})`;
+                        }
                         return (
                           <span
                             key={id}
                             className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700"
                           >
                             <Icon className="h-3.5 w-3.5" />
-                            {opt.nameTh}
+                            {label}
                           </span>
                         );
                       })}

@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Crown } from "lucide-react";
+import { EXHIBITION_ICONS } from "../data/exhibition-icons";
+import type { DepartmentIcon } from "../data/departments";
+import type { RoleIcon } from "../data/roles";
 
 export type ExhibitionChoiceRow = {
   studentId: string;
@@ -14,7 +18,7 @@ export type ExhibitionChoiceRow = {
 
 export type ExhibitionDept = {
   id: string;
-  emoji: string;
+  icon: DepartmentIcon;
   nameTh: string;
   capacity: number;
 };
@@ -22,7 +26,7 @@ export type ExhibitionDept = {
 export type ExhibitionRoleRow = {
   studentId: string;
   title: string;
-  emoji: string;
+  icon: RoleIcon;
   nicknameTh: string;
   fullNameTh: string;
 };
@@ -71,17 +75,22 @@ export default function ExhibitionManager({
       {/* ทีมที่มีตำแหน่งกำหนดไว้ (ไม่ต้องเลือกฝ่าย) */}
       {roles.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-border-default bg-white">
-          <div className="border-b border-border-default bg-surface-muted px-4 py-3 text-sm font-semibold text-foreground">
-            👑 ทีมหัวหน้า / ฝ่ายการเงิน{" "}
+          <div className="flex items-center gap-1.5 border-b border-border-default bg-surface-muted px-4 py-3 text-sm font-semibold text-foreground">
+            <Crown className="h-4 w-4 text-amber-500" />
+            ทีมหัวหน้า / ฝ่ายการเงิน{" "}
             <span className="font-normal text-muted">(ไม่ต้องเลือกฝ่าย)</span>
           </div>
           <ul className="grid gap-x-4 gap-y-px sm:grid-cols-2">
-            {roles.map((r) => (
+            {roles.map((r) => {
+              const RoleIconCmp = EXHIBITION_ICONS[r.icon];
+              return (
               <li
                 key={r.studentId}
                 className="flex items-center gap-2.5 border-b border-border-default px-4 py-2.5 last:border-0"
               >
-                <span className="text-lg">{r.emoji}</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                  <RoleIconCmp className="h-4 w-4" />
+                </span>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-foreground">
                     {r.title}
@@ -92,7 +101,8 @@ export default function ExhibitionManager({
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       )}
@@ -103,6 +113,7 @@ export default function ExhibitionManager({
             .filter((r) => r.departmentId === dept.id)
             .sort((a, b) => a.studentNo - b.studentNo);
           const full = members.length >= dept.capacity;
+          const DeptIcon = EXHIBITION_ICONS[dept.icon];
           return (
             <div
               key={dept.id}
@@ -110,7 +121,9 @@ export default function ExhibitionManager({
             >
               <div className="flex items-center justify-between gap-2 border-b border-border-default bg-surface-muted px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{dept.emoji}</span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                    <DeptIcon className="h-4 w-4" />
+                  </span>
                   <span className="font-semibold text-foreground">{dept.nameTh}</span>
                 </div>
                 <span
@@ -160,7 +173,9 @@ export default function ExhibitionManager({
                         {otherDepts.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1">
                             <span className="text-[10px] text-muted">ย้ายไป:</span>
-                            {otherDepts.map((d) => (
+                            {otherDepts.map((d) => {
+                              const MoveIcon = EXHIBITION_ICONS[d.icon];
+                              return (
                               <button
                                 key={d.id}
                                 onClick={() =>
@@ -171,11 +186,19 @@ export default function ExhibitionManager({
                                   )
                                 }
                                 disabled={!!busy}
-                                className="rounded-md border border-border-default px-1.5 py-0.5 text-[10px] text-violet-700 transition hover:bg-violet-50 disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-md border border-border-default px-1.5 py-0.5 text-[10px] text-violet-700 transition hover:bg-violet-50 disabled:opacity-50"
                               >
-                                {busy === `mv-${m.studentId}-${d.id}` ? "…" : `${d.emoji} ${d.nameTh}`}
+                                {busy === `mv-${m.studentId}-${d.id}` ? (
+                                  "…"
+                                ) : (
+                                  <>
+                                    <MoveIcon className="h-3 w-3" />
+                                    {d.nameTh}
+                                  </>
+                                )}
                               </button>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </li>

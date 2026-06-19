@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, UtensilsCrossed } from "lucide-react";
 import { findStudent } from "../data/students";
-import { isDietaryId, type DietaryId } from "../data/dietary";
+import {
+  isDietaryId,
+  isSeafoodItemId,
+  type DietaryId,
+  type SeafoodItemId,
+} from "../data/dietary";
 import { sql } from "../lib/db";
 import { ensureSchema } from "../lib/schema";
 import DietaryForm from "../components/DietaryForm";
@@ -24,11 +29,25 @@ export default async function DietaryPage({
   await ensureSchema();
 
   const rows = await sql`
-    SELECT restrictions, other_note FROM dietary_choices WHERE student_id = ${student.studentId} LIMIT 1
+    SELECT restrictions, other_note,
+           COALESCE(seafood_items, '[]'::jsonb) AS seafood_items,
+           COALESCE(seafood_other, '') AS seafood_other
+    FROM dietary_choices WHERE student_id = ${student.studentId} LIMIT 1
   `;
-  const row = rows[0] as { restrictions: string[]; other_note: string } | undefined;
+  const row = rows[0] as
+    | {
+        restrictions: string[];
+        other_note: string;
+        seafood_items: string[];
+        seafood_other: string;
+      }
+    | undefined;
   const restrictions = ((row?.restrictions ?? []) as string[]).filter(isDietaryId) as DietaryId[];
   const otherNote = row?.other_note ?? "";
+  const seafoodItems = ((row?.seafood_items ?? []) as string[]).filter(
+    isSeafoodItemId,
+  ) as SeafoodItemId[];
+  const seafoodOther = row?.seafood_other ?? "";
 
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-8 sm:px-5 sm:py-12">
@@ -59,6 +78,8 @@ export default async function DietaryPage({
             studentId={student.studentId}
             initialRestrictions={restrictions}
             initialOtherNote={otherNote}
+            initialSeafoodItems={seafoodItems}
+            initialSeafoodOther={seafoodOther}
           />
         </section>
       </div>

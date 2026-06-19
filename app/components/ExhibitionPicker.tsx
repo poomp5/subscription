@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { PartyPopper, AlertTriangle } from "lucide-react";
 import { DEPARTMENTS, type Department } from "../data/departments";
+import { EXHIBITION_ICONS } from "../data/exhibition-icons";
 
 type Counts = Record<string, number>;
 
@@ -58,9 +60,12 @@ export default function ExhibitionPicker({
 
   if (choice) {
     const dept = DEPARTMENTS.find((d) => d.id === choice)!;
+    const DeptIcon = EXHIBITION_ICONS[dept.icon];
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center fade-up">
-        <div className="text-4xl">{dept.emoji}</div>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+          <DeptIcon className="h-8 w-8 text-emerald-600" />
+        </div>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
           เลือกฝ่ายเรียบร้อยแล้ว
@@ -84,7 +89,7 @@ export default function ExhibitionPicker({
 
       {visible.length === 0 ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
-          <div className="text-3xl">🙏</div>
+          <PartyPopper className="mx-auto h-8 w-8 text-amber-500" />
           <p className="mt-2 text-sm font-medium text-amber-800">
             ทุกฝ่ายเต็มแล้ว ขออภัยในความไม่สะดวก
           </p>
@@ -95,6 +100,7 @@ export default function ExhibitionPicker({
           {visible.map((dept) => {
             const left = Math.max(0, dept.capacity - counts[dept.id]);
             const isSubmitting = submitting === dept.id;
+            const DeptIcon = EXHIBITION_ICONS[dept.icon];
             return (
               <div
                 key={dept.id}
@@ -102,7 +108,9 @@ export default function ExhibitionPicker({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="text-3xl leading-none">{dept.emoji}</div>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                      <DeptIcon className="h-5 w-5" />
+                    </span>
                     <div>
                       <h3 className="text-lg font-semibold text-violet-900">{dept.nameTh}</h3>
                       <p className="mt-0.5 text-sm text-(--muted)">{dept.summary}</p>
@@ -123,8 +131,9 @@ export default function ExhibitionPicker({
                 </ul>
 
                 {dept.note && (
-                  <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
-                    ⚠️ {dept.note}
+                  <p className="mt-3 flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {dept.note}
                   </p>
                 )}
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, Tent } from "lucide-react";
 import type { SubmissionRow } from "../lib/db";
 import PenaltyManager, { type StudentPenaltyRow } from "./PenaltyManager";
 import ExhibitionManager, {
@@ -133,15 +133,16 @@ export default function AdminDashboard({
           </button>
           <button
             onClick={() => setActiveTab("EXHIBITION")}
-            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
               activeTab === "EXHIBITION"
                 ? "bg-primary text-white shadow-sm"
                 : "text-muted hover:bg-violet-50"
             }`}
           >
-            🎪 จัดนิทรรศการ
+            <Tent className="h-4 w-4" />
+            จัดนิทรรศการ
             <span
-              className={`ml-1.5 text-[11px] ${
+              className={`text-[11px] ${
                 activeTab === "EXHIBITION" ? "text-white/80" : "text-violet-400"
               }`}
             >

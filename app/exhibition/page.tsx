@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, Tent } from "lucide-react";
 import { findStudent } from "../data/students";
 import { DEPARTMENTS } from "../data/departments";
 import { findRole } from "../data/roles";
+import { EXHIBITION_ICONS } from "../data/exhibition-icons";
 import { sql } from "../lib/db";
 import { ensureSchema } from "../lib/schema";
 import ExhibitionPicker from "../components/ExhibitionPicker";
@@ -24,6 +26,7 @@ export default async function ExhibitionPage({
   // คนที่มีตำแหน่งกำหนดไว้ล่วงหน้า (หัวหน้า/รองหัวหน้า/การเงิน) ไม่ต้องเลือกฝ่าย
   const role = findRole(student.studentId);
   if (role) {
+    const RoleIcon = EXHIBITION_ICONS[role.icon];
     return (
       <main className="flex flex-1 flex-col items-center px-4 py-8 sm:px-5 sm:py-12">
         <div className="w-full max-w-2xl">
@@ -32,13 +35,15 @@ export default async function ExhibitionPage({
           <section className="mt-5 fade-up">
             <Badge />
             <h1 className="mt-4 text-2xl font-semibold tracking-tight text-violet-900 sm:text-3xl">
-              สวัสดี {student.nicknameTh} 👋
+              สวัสดี {student.nicknameTh}
             </h1>
           </section>
 
           <section className="mt-6 fade-up">
             <div className="rounded-2xl border border-violet-200 bg-violet-50 p-6 text-center">
-              <div className="text-4xl">{role.emoji}</div>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-100">
+                <RoleIcon className="h-8 w-8 text-violet-600" />
+              </div>
               <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-violet-500" />
                 ตำแหน่งของคุณ
@@ -85,7 +90,7 @@ export default async function ExhibitionPage({
         <section className="mt-5 fade-up">
           <Badge />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-violet-900 sm:text-3xl">
-            สวัสดี {student.nicknameTh} 👋
+            สวัสดี {student.nicknameTh}
           </h1>
           <p className="mt-1 text-sm text-muted">
             เลือกฝ่ายที่ต้องการเข้าร่วม — เลือกได้คนละหนึ่งฝ่าย และเลือกแล้วเปลี่ยนไม่ได้
@@ -110,13 +115,7 @@ function BackLink() {
       href="/"
       className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-primary"
     >
-      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-        <path
-          fillRule="evenodd"
-          d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-          clipRule="evenodd"
-        />
-      </svg>
+      <ArrowLeft className="h-4 w-4" />
       กลับ
     </Link>
   );
@@ -125,7 +124,8 @@ function BackLink() {
 function Badge() {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 text-xs font-medium text-violet-700">
-      🎪 จัดนิทรรศการ
+      <Tent className="h-3.5 w-3.5" />
+      จัดนิทรรศการ
     </div>
   );
 }
