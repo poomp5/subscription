@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   ArrowRight,
+  Gift,
   Wallet,
   Tent,
   UtensilsCrossed,
@@ -17,10 +18,19 @@ type MenuItem = {
   icon: LucideIcon;
   title: string;
   desc: string;
-  tone: "violet" | "fuchsia" | "amber";
+  tone: "rose" | "violet" | "fuchsia" | "amber";
+  alert?: string;
 };
 
 const MENU: MenuItem[] = [
+  {
+    href: (id) => `/wai-kru?id=${id}`,
+    icon: Gift,
+    title: "จ่ายเงินค่าพานไหว้ครู",
+    desc: "สแกน QR PromptPay ยอด 15 บาท",
+    tone: "rose",
+    alert: "ด่วน",
+  },
   {
     href: (id) => `/verify?id=${id}`,
     icon: Wallet,
@@ -45,6 +55,7 @@ const MENU: MenuItem[] = [
 ];
 
 const TONES: Record<MenuItem["tone"], { box: string; icon: string }> = {
+  rose: { box: "bg-rose-100", icon: "text-rose-600" },
   violet: { box: "bg-violet-100", icon: "text-violet-600" },
   fuchsia: { box: "bg-fuchsia-100", icon: "text-fuchsia-600" },
   amber: { box: "bg-amber-100", icon: "text-amber-600" },
@@ -124,8 +135,13 @@ export default function MainMenu() {
                   <Icon className={`h-5 w-5 ${tone.icon}`} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-violet-900">
-                    {item.title}
+                  <span className="flex items-center gap-2 text-sm font-semibold text-violet-900">
+                    <span className="min-w-0 truncate">{item.title}</span>
+                    {item.alert && (
+                      <span className="shrink-0 animate-pulse rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm shadow-rose-200">
+                        {item.alert}
+                      </span>
+                    )}
                   </span>
                   <span className="block text-xs text-muted">{item.desc}</span>
                 </span>

@@ -79,7 +79,13 @@ export default async function AdminPage({
               ORDER BY created_at DESC LIMIT 500
             `,
     sql`SELECT status, COUNT(*)::int AS count FROM submissions GROUP BY status`,
-    sql`SELECT student_id, COALESCE(SUM(amount),0)::numeric AS total FROM submissions WHERE status = 'APPROVED' GROUP BY student_id`,
+    sql`
+      SELECT student_id, COALESCE(SUM(amount),0)::numeric AS total
+      FROM submissions
+      WHERE status = 'APPROVED'
+        AND plan_id IN ('weekly', 'monthly', 'lifetime')
+      GROUP BY student_id
+    `,
     sql`SELECT student_id, count, COALESCE(reasons, '[]'::jsonb) AS reasons FROM penalties`,
     sql`
       SELECT student_id, student_no, nickname_th, full_name_th, department_id, created_at

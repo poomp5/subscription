@@ -14,6 +14,8 @@ export type Plan = {
 };
 
 export const PROMPTPAY_NUMBER = "0925591545";
+export const WAI_KRU_PROMPTPAY_NUMBER = "1102200283145";
+export const WAI_KRU_AMOUNT = 15;
 
 export const PLANS: Plan[] = [
   {
@@ -57,4 +59,8 @@ export function findPlan(id: string): Plan | undefined {
 
 export function promptpayUrl(amount: number): string {
   return `https://promptpay.io/${PROMPTPAY_NUMBER}/${amount}`;
+}
+
+export function waiKruPromptpayUrl(): string {
+  return `https://promptpay.io/${WAI_KRU_PROMPTPAY_NUMBER}/${WAI_KRU_AMOUNT}`;
 }
