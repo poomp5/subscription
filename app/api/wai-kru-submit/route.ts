@@ -52,6 +52,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const existingRows = await sql`
+    SELECT ref, status
+    FROM submissions
+    WHERE student_id = ${student.studentId}
+      AND plan_id = 'wai-kru'
+      AND status IN ('PENDING', 'APPROVED')
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+  const existing = existingRows[0] as { ref: string; status: string } | undefined;
+  if (existing) {
+    return Response.json({
+      ok: true,
+      ref: existing.ref,
+      status: existing.status,
+      existing: true,
+    });
+  }
+
   const ref = makeRef(student.studentId);
   let slipUrl: string | null = null;
   let slipKey: string | null = null;
@@ -107,5 +126,5 @@ export async function POST(request: NextRequest) {
     ],
   });
 
-  return Response.json({ ok: true, ref });
+  return Response.json({ ok: true, ref, status: "PENDING" });
 }

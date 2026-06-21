@@ -6,9 +6,15 @@ import {
   WAI_KRU_PROMPTPAY_NUMBER,
   waiKruPromptpayUrl,
 } from "../data/plans";
+import { sql } from "../lib/db";
+import { ensureSchema } from "../lib/schema";
 import WaiKruPaymentClient from "../components/WaiKruPaymentClient";
 
 type SearchParams = Promise<{ id?: string }>;
+type WaiKruSubmission = {
+  ref: string;
+  status: "PENDING" | "APPROVED";
+};
 
 export default async function WaiKruPage({
   searchParams,
@@ -17,6 +23,22 @@ export default async function WaiKruPage({
 }) {
   const { id } = await searchParams;
   const student = id ? findStudent(id) : undefined;
+  let waiKruSubmission: WaiKruSubmission | null = null;
+
+  if (student) {
+    await ensureSchema();
+    const rows = await sql`
+      SELECT ref, status
+      FROM submissions
+      WHERE student_id = ${student.studentId}
+        AND plan_id = 'wai-kru'
+        AND status IN ('PENDING', 'APPROVED')
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    waiKruSubmission = (rows[0] as WaiKruSubmission | undefined) ?? null;
+  }
+
   const promptpayDisplay = `${WAI_KRU_PROMPTPAY_NUMBER.slice(0, 1)}-${WAI_KRU_PROMPTPAY_NUMBER.slice(1, 5)}-${WAI_KRU_PROMPTPAY_NUMBER.slice(5, 10)}-${WAI_KRU_PROMPTPAY_NUMBER.slice(10)}`;
 
   return (
@@ -92,6 +114,7 @@ export default async function WaiKruPage({
                   firstNameTh: student.firstNameTh,
                   lastNameTh: student.lastNameTh,
                 }}
+                currentSubmission={waiKruSubmission}
               />
             ) : (
               <div className="card p-5 sm:p-6">

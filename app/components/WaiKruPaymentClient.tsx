@@ -10,9 +10,20 @@ type StudentLite = {
   lastNameTh: string;
 };
 
+type CurrentSubmission = {
+  ref: string;
+  status: "PENDING" | "APPROVED";
+} | null;
+
 const MAX_SLIP_BYTES = 5 * 1024 * 1024;
 
-export default function WaiKruPaymentClient({ student }: { student: StudentLite }) {
+export default function WaiKruPaymentClient({
+  student,
+  currentSubmission,
+}: {
+  student: StudentLite;
+  currentSubmission: CurrentSubmission;
+}) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [slipPreview, setSlipPreview] = useState<string | null>(null);
   const [slipBase64, setSlipBase64] = useState<string | null>(null);
@@ -21,6 +32,9 @@ export default function WaiKruPaymentClient({ student }: { student: StudentLite 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successRef, setSuccessRef] = useState<string | null>(null);
+  const [submittedStatus, setSubmittedStatus] = useState<"PENDING" | "APPROVED" | null>(
+    currentSubmission?.status ?? null,
+  );
 
   function handleFile(file: File) {
     setError(null);
@@ -80,6 +94,7 @@ export default function WaiKruPaymentClient({ student }: { student: StudentLite 
         throw new Error(data?.error || "บันทึกไม่สำเร็จ");
       }
       setSuccessRef(data.ref);
+      setSubmittedStatus(data.status === "APPROVED" ? "APPROVED" : "PENDING");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
       setError(msg);
@@ -87,7 +102,9 @@ export default function WaiKruPaymentClient({ student }: { student: StudentLite 
     }
   }
 
-  if (successRef) {
+  if (submittedStatus) {
+    const ref = successRef ?? currentSubmission?.ref;
+    const approved = submittedStatus === "APPROVED";
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500">
@@ -99,8 +116,12 @@ export default function WaiKruPaymentClient({ student }: { student: StudentLite 
             />
           </svg>
         </div>
-        <h2 className="mt-3 text-base font-semibold text-emerald-800">ส่งสลิปสำเร็จ</h2>
-        <p className="mt-1 text-xs text-emerald-700">รอแอดมินตรวจสอบ · {successRef}</p>
+        <h2 className="mt-3 text-base font-semibold text-emerald-800">
+          {approved ? "จ่ายไปแล้ว" : "ส่งสลิปแล้ว"}
+        </h2>
+        <p className="mt-1 text-xs text-emerald-700">
+          {approved ? "แอดมินอนุมัติแล้ว" : "รอแอดมินตรวจสอบ"} · {ref}
+        </p>
       </div>
     );
   }

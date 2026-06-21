@@ -37,7 +37,7 @@ export default async function VerifyPage({
       SELECT COALESCE(SUM(amount), 0)::numeric AS total
       FROM submissions
       WHERE student_id = ${student.studentId} AND status = 'APPROVED'
-        AND plan_id != 'penalty'
+        AND plan_id IN ('weekly', 'monthly', 'lifetime')
     `,
     sql`
       SELECT count, reasons FROM penalties WHERE student_id = ${student.studentId}
@@ -51,7 +51,7 @@ export default async function VerifyPage({
     sql`
       SELECT ref, status, plan_name_th FROM submissions
       WHERE student_id = ${student.studentId}
-        AND plan_id != 'penalty'
+        AND plan_id IN ('weekly', 'monthly', 'lifetime')
         AND status IN ('PENDING', 'REJECTED')
       ORDER BY created_at DESC
       LIMIT 1
