@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import {
   ArrowRight,
   Gift,
@@ -73,13 +73,55 @@ const TONES: Record<MenuItem["tone"], { box: string; icon: string }> = {
   emerald: { box: "bg-emerald-100", icon: "text-emerald-600" },
 };
 
+const REMEMBER_STUDENT_KEY = "ds69.rememberedStudentId";
+const REMEMBER_STUDENT_EVENT = "ds69:remembered-student";
+
+function getRememberedStudentId() {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(REMEMBER_STUDENT_KEY) ?? "";
+}
+
+function subscribeRememberedStudent(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === REMEMBER_STUDENT_KEY) callback();
+  };
+
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(REMEMBER_STUDENT_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(REMEMBER_STUDENT_EVENT, callback);
+  };
+}
+
+function setRememberedStudentId(studentId: string | null) {
+  if (studentId) {
+    window.localStorage.setItem(REMEMBER_STUDENT_KEY, studentId);
+  } else {
+    window.localStorage.removeItem(REMEMBER_STUDENT_KEY);
+  }
+  window.dispatchEvent(new Event(REMEMBER_STUDENT_EVENT));
+}
+
 export default function MainMenu() {
   const router = useRouter();
+  const rememberedStudentId = useSyncExternalStore(
+    subscribeRememberedStudent,
+    getRememberedStudentId,
+    () => "",
+  );
+  const rememberedStudent = rememberedStudentId ? (findStudent(rememberedStudentId) ?? null) : null;
   const [studentId, setStudentId] = useState("");
-  const [student, setStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
   const [waiKruPaid, setWaiKruPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [navigating, setNavigating] = useState(false);
   const [pending, startTransition] = useTransition();
+  const student = selectedStudent ?? rememberedStudent;
+  const loading = pending || navigating;
 
   useEffect(() => {
     if (!student) return;
@@ -98,6 +140,12 @@ export default function MainMenu() {
       cancelled = true;
     };
   }, [student]);
+
+  useEffect(() => {
+    if (!navigating) return;
+    const timeout = window.setTimeout(() => setNavigating(false), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [navigating]);
 
   const menu = useMemo(
     () => (waiKruPaid ? PRIMARY_MENU : [{ ...WAI_KRU_MENU, alert: "ยังไม่จ่าย" }, ...PRIMARY_MENU]),
@@ -123,10 +171,16 @@ export default function MainMenu() {
       return;
     }
     setWaiKruPaid(false);
-    setStudent(found);
+    if (rememberMe) {
+      setRememberedStudentId(found.studentId);
+    } else {
+      setRememberedStudentId(null);
+    }
+    setSelectedStudent(found);
   }
 
   function go(href: string) {
+    setNavigating(true);
     startTransition(() => {
       router.push(href);
     });
@@ -136,10 +190,15 @@ export default function MainMenu() {
   if (student) {
     return (
       <div className="card p-6 shadow-sm shadow-violet-100 fade-up">
+        {loading && <RouteLoading />}
+
         <button
           type="button"
           onClick={() => {
-            setStudent(null);
+            setRememberedStudentId(null);
+            setSelectedStudent(null);
+            setStudentId("");
+            setRememberMe(false);
             setWaiKruPaid(false);
             setError(null);
           }}
@@ -161,13 +220,13 @@ export default function MainMenu() {
         </div>
 
         <div className="mt-4 grid gap-3">
-          {menu.map((item) => renderMenuButton(item, student.studentId, pending, go))}
+          {menu.map((item) => renderMenuButton(item, student.studentId, loading, go))}
         </div>
 
         <div className="mt-5 border-t border-violet-100 pt-4">
           <div className="grid gap-2">
             {secondaryMenu.map((item) =>
-              renderMenuButton(item, student.studentId, pending, go, true),
+              renderMenuButton(item, student.studentId, loading, go, true),
             )}
           </div>
         </div>
@@ -196,6 +255,16 @@ export default function MainMenu() {
         className="mt-2 block w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-lg tracking-wider text-foreground outline-none transition placeholder:text-violet-300 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
       />
 
+      <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-muted">
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          className="h-4 w-4 rounded border-violet-300 text-violet-600 accent-violet-600"
+        />
+        จดจำฉัน
+      </label>
+
       {error && (
         <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
@@ -214,10 +283,27 @@ export default function MainMenu() {
   );
 }
 
+function RouteLoading() {
+  return (
+    <>
+      <div className="route-progress" aria-hidden="true">
+        <div className="route-progress-bar" />
+      </div>
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full border border-violet-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-violet-700 shadow-lg shadow-violet-200/60 backdrop-blur"
+      >
+        กำลังเปิดหน้า...
+      </div>
+    </>
+  );
+}
+
 function renderMenuButton(
   item: MenuItem,
   studentId: string,
-  pending: boolean,
+  loading: boolean,
   go: (href: string) => void,
   secondary = false,
 ) {
@@ -228,7 +314,7 @@ function renderMenuButton(
     <button
       key={item.title}
       type="button"
-      disabled={pending}
+      disabled={loading}
       onClick={() => go(item.href(studentId))}
       className={`group flex items-center gap-3 rounded-2xl border bg-white text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
         secondary

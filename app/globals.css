@@ -64,3 +64,27 @@ body {
 .fade-up {
   animation: fadeUp 0.4s ease-out both;
 }
+
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  height: 3px;
+  width: 100%;
+  overflow: hidden;
+  background: rgb(124 58 237 / 0.12);
+}
+
+.route-progress-bar {
+  height: 100%;
+  width: 45%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--primary), #a78bfa);
+  animation: routeProgress 0.7s ease-in-out infinite;
+}
+
+@keyframes routeProgress {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(230%); }
+}
