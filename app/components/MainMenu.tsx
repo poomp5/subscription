@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ArrowRight,
   Gift,
@@ -23,15 +23,15 @@ type MenuItem = {
   alert?: string;
 };
 
-const MENU: MenuItem[] = [
-  {
-    href: (id) => `/wai-kru?id=${id}`,
-    icon: Gift,
-    title: "จ่ายเงินค่าพานไหว้ครู",
-    desc: "สแกน QR PromptPay ยอด 15 บาท",
-    tone: "rose",
-    alert: "ด่วน",
-  },
+const WAI_KRU_MENU: MenuItem = {
+  href: (id) => `/wai-kru?id=${id}`,
+  icon: Gift,
+  title: "จ่ายเงินค่าพานไหว้ครู",
+  desc: "สแกน QR PromptPay ยอด 15 บาท",
+  tone: "rose",
+};
+
+const PRIMARY_MENU: MenuItem[] = [
   {
     href: (id) => `/verify?id=${id}`,
     icon: Wallet,
@@ -39,6 +39,16 @@ const MENU: MenuItem[] = [
     desc: "ชำระเงินประจำปีและดูยอดคงเหลือ",
     tone: "violet",
   },
+  {
+    href: (id) => `/food?id=${id}`,
+    icon: Soup,
+    title: "เลือกอาหาร",
+    desc: "โหวตเมนูข้าวหน้าไก่และเพิ่มคอมเมนต์",
+    tone: "emerald",
+  },
+];
+
+const SECONDARY_MENU: MenuItem[] = [
   {
     href: (id) => `/exhibition?id=${id}`,
     icon: Tent,
@@ -52,13 +62,6 @@ const MENU: MenuItem[] = [
     title: "เช็คข้อมูลแพ้อาหาร",
     desc: "แจ้งอาการแพ้และข้อจำกัดด้านอาหาร",
     tone: "amber",
-  },
-  {
-    href: (id) => `/food?id=${id}`,
-    icon: Soup,
-    title: "เลือกอาหาร",
-    desc: "โหวตเมนูข้าวหน้าไก่และเพิ่มคอมเมนต์",
-    tone: "emerald",
   },
 ];
 
@@ -74,8 +77,37 @@ export default function MainMenu() {
   const router = useRouter();
   const [studentId, setStudentId] = useState("");
   const [student, setStudent] = useState<Student | null>(null);
+  const [waiKruPaid, setWaiKruPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!student) return;
+
+    let cancelled = false;
+    fetch(`/api/wai-kru-status?id=${encodeURIComponent(student.studentId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { paid?: boolean } | null) => {
+        if (!cancelled) setWaiKruPaid(!!data?.paid);
+      })
+      .catch(() => {
+        if (!cancelled) setWaiKruPaid(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [student]);
+
+  const menu = useMemo(
+    () => (waiKruPaid ? PRIMARY_MENU : [{ ...WAI_KRU_MENU, alert: "ยังไม่จ่าย" }, ...PRIMARY_MENU]),
+    [waiKruPaid],
+  );
+
+  const secondaryMenu = useMemo(
+    () => (waiKruPaid ? [WAI_KRU_MENU, ...SECONDARY_MENU] : SECONDARY_MENU),
+    [waiKruPaid],
+  );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -90,6 +122,7 @@ export default function MainMenu() {
       setError("ไม่พบเลขประจำตัวนี้ในระบบ ลองตรวจสอบอีกครั้ง");
       return;
     }
+    setWaiKruPaid(false);
     setStudent(found);
   }
 
@@ -107,6 +140,7 @@ export default function MainMenu() {
           type="button"
           onClick={() => {
             setStudent(null);
+            setWaiKruPaid(false);
             setError(null);
           }}
           className="inline-flex items-center gap-1 text-sm text-muted transition hover:text-primary"
@@ -127,37 +161,15 @@ export default function MainMenu() {
         </div>
 
         <div className="mt-4 grid gap-3">
-          {MENU.map((item) => {
-            const Icon = item.icon;
-            const tone = TONES[item.tone];
-            return (
-              <button
-                key={item.title}
-                type="button"
-                disabled={pending}
-                onClick={() => go(item.href(student.studentId))}
-                className="group flex items-center gap-3 rounded-2xl border border-violet-200 bg-white p-4 text-left transition hover:border-violet-300 hover:bg-violet-50/50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone.box}`}
-                >
-                  <Icon className={`h-5 w-5 ${tone.icon}`} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-violet-900">
-                    <span className="min-w-0 truncate">{item.title}</span>
-                    {item.alert && (
-                      <span className="shrink-0 animate-pulse rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm shadow-rose-200">
-                        {item.alert}
-                      </span>
-                    )}
-                  </span>
-                  <span className="block text-xs text-muted">{item.desc}</span>
-                </span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-violet-400 transition group-hover:translate-x-0.5 group-hover:text-violet-600" />
-              </button>
-            );
-          })}
+          {menu.map((item) => renderMenuButton(item, student.studentId, pending, go))}
+        </div>
+
+        <div className="mt-5 border-t border-violet-100 pt-4">
+          <div className="grid gap-2">
+            {secondaryMenu.map((item) =>
+              renderMenuButton(item, student.studentId, pending, go, true),
+            )}
+          </div>
         </div>
       </div>
     );
@@ -199,5 +211,64 @@ export default function MainMenu() {
         <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
       </button>
     </form>
+  );
+}
+
+function renderMenuButton(
+  item: MenuItem,
+  studentId: string,
+  pending: boolean,
+  go: (href: string) => void,
+  secondary = false,
+) {
+  const Icon = item.icon;
+  const tone = TONES[item.tone];
+
+  return (
+    <button
+      key={item.title}
+      type="button"
+      disabled={pending}
+      onClick={() => go(item.href(studentId))}
+      className={`group flex items-center gap-3 rounded-2xl border bg-white text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        secondary
+          ? "border-slate-200/80 p-3.5 opacity-65 hover:border-violet-300 hover:bg-violet-50/50 hover:opacity-100"
+          : "border-violet-200 p-4 hover:border-violet-300 hover:bg-violet-50/50"
+      }`}
+    >
+      <span
+        className={`flex shrink-0 items-center justify-center rounded-xl transition ${
+          secondary
+            ? "h-10 w-10 bg-slate-100 text-slate-400 group-hover:bg-violet-100"
+            : `h-11 w-11 ${tone.box}`
+        }`}
+      >
+        <Icon
+          className={`transition ${
+            secondary ? "h-4 w-4 group-hover:text-violet-600" : `h-5 w-5 ${tone.icon}`
+          }`}
+        />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={`flex items-center gap-2 text-sm font-semibold transition ${
+            secondary ? "text-slate-500 group-hover:text-violet-900" : "text-violet-900"
+          }`}
+        >
+          <span className="min-w-0 truncate">{item.title}</span>
+          {item.alert && (
+            <span className="shrink-0 animate-pulse rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm shadow-rose-200">
+              {item.alert}
+            </span>
+          )}
+        </span>
+        <span className="block text-xs text-muted">{item.desc}</span>
+      </span>
+      <ArrowRight
+        className={`h-4 w-4 shrink-0 transition group-hover:translate-x-0.5 ${
+          secondary ? "text-slate-300 group-hover:text-violet-600" : "text-violet-400 group-hover:text-violet-600"
+        }`}
+      />
+    </button>
   );
 }
