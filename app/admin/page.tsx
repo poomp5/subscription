@@ -11,10 +11,12 @@ import {
   type DietaryId,
   type SeafoodItemId,
 } from "../data/dietary";
+import { isFoodChoiceId, type FoodChoiceId } from "../data/food";
 import AdminDashboard from "../components/AdminDashboard";
 import type { StudentPenaltyRow } from "../components/PenaltyManager";
 import type { ExhibitionChoiceRow } from "../components/ExhibitionManager";
 import type { DietaryRow } from "../components/DietaryManager";
+import type { FoodRow } from "../components/FoodManager";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +51,7 @@ export default async function AdminPage({
     : "ALL";
   const q = (qRaw || "").trim();
 
-  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw, dietaryRaw] = await Promise.all([
+  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw, dietaryRaw, foodRaw] = await Promise.all([
     status === "ALL" && !q
       ? sql`SELECT * FROM submissions ORDER BY created_at DESC LIMIT 500`
       : status === "ALL" && q
@@ -98,6 +100,10 @@ export default async function AdminPage({
              COALESCE(seafood_items, '[]'::jsonb) AS seafood_items,
              COALESCE(seafood_other, '') AS seafood_other
       FROM dietary_choices
+    `,
+    sql`
+      SELECT student_id, food_id, COALESCE(comment, '') AS comment
+      FROM food_choices
     `,
   ]);
 
@@ -211,6 +217,36 @@ export default async function AdminPage({
     };
   });
 
+  const foodMap = new Map(
+    (
+      foodRaw as unknown as Array<{
+        student_id: string;
+        food_id: string;
+        comment: string;
+      }>
+    )
+      .filter((r) => isFoodChoiceId(r.food_id))
+      .map((r) => [
+        r.student_id,
+        {
+          foodId: r.food_id as FoodChoiceId,
+          comment: r.comment ?? "",
+        },
+      ]),
+  );
+
+  const foodRows: FoodRow[] = STUDENTS.map((s) => {
+    const food = foodMap.get(s.studentId);
+    return {
+      studentId: s.studentId,
+      studentNo: s.no,
+      nicknameTh: s.nicknameTh,
+      fullNameTh: `${s.firstNameTh} ${s.lastNameTh}`,
+      foodId: food?.foodId ?? null,
+      comment: food?.comment ?? "",
+    };
+  });
+
   return (
     <AdminDashboard
       rows={rows}
@@ -222,6 +258,7 @@ export default async function AdminPage({
       exhibitionDepts={exhibitionDepts}
       exhibitionRoles={exhibitionRoles}
       dietaryRows={dietaryRows}
+      foodRows={foodRows}
     />
   );
 }

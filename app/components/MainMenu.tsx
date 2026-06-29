@@ -8,6 +8,7 @@ import {
   Wallet,
   Tent,
   UtensilsCrossed,
+  Soup,
   ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
@@ -18,7 +19,7 @@ type MenuItem = {
   icon: LucideIcon;
   title: string;
   desc: string;
-  tone: "rose" | "violet" | "fuchsia" | "amber";
+  tone: "rose" | "violet" | "fuchsia" | "amber" | "emerald";
   alert?: string;
 };
 
@@ -52,6 +53,13 @@ const MENU: MenuItem[] = [
     desc: "แจ้งอาการแพ้และข้อจำกัดด้านอาหาร",
     tone: "amber",
   },
+  {
+    href: (id) => `/food?id=${id}`,
+    icon: Soup,
+    title: "เลือกอาหาร",
+    desc: "โหวตเมนูข้าวหน้าไก่และเพิ่มคอมเมนต์",
+    tone: "emerald",
+  },
 ];
 
 const TONES: Record<MenuItem["tone"], { box: string; icon: string }> = {
@@ -59,6 +67,7 @@ const TONES: Record<MenuItem["tone"], { box: string; icon: string }> = {
   violet: { box: "bg-violet-100", icon: "text-violet-600" },
   fuchsia: { box: "bg-fuchsia-100", icon: "text-fuchsia-600" },
   amber: { box: "bg-amber-100", icon: "text-amber-600" },
+  emerald: { box: "bg-emerald-100", icon: "text-emerald-600" },
 };
 
 export default function MainMenu() {

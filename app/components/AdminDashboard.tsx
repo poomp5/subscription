@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   UtensilsCrossed,
+  Soup,
   Tent,
   LayoutDashboard,
   Wallet,
@@ -21,9 +22,10 @@ import ExhibitionManager, {
   type ExhibitionRoleRow,
 } from "./ExhibitionManager";
 import DietaryManager, { type DietaryRow } from "./DietaryManager";
+import FoodManager, { type FoodRow } from "./FoodManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
-type Tab = "DASHBOARD" | "SUBMISSIONS" | "PENALTIES" | "EXHIBITION" | "DIETARY";
+type Tab = "DASHBOARD" | "SUBMISSIONS" | "PENALTIES" | "EXHIBITION" | "DIETARY" | "FOOD";
 
 type Summary = {
   ALL: number;
@@ -46,6 +48,7 @@ const NAV: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "PENALTIES", label: "จัดการค่าปรับ", icon: CircleAlert },
   { key: "EXHIBITION", label: "จัดนิทรรศการ", icon: Tent },
   { key: "DIETARY", label: "ข้อมูลอาหาร", icon: UtensilsCrossed },
+  { key: "FOOD", label: "เลือกอาหาร", icon: Soup },
 ];
 
 export default function AdminDashboard({
@@ -58,6 +61,7 @@ export default function AdminDashboard({
   exhibitionDepts,
   exhibitionRoles,
   dietaryRows,
+  foodRows,
 }: {
   rows: SubmissionRow[];
   status: Status;
@@ -68,6 +72,7 @@ export default function AdminDashboard({
   exhibitionDepts: ExhibitionDept[];
   exhibitionRoles: ExhibitionRoleRow[];
   dietaryRows: DietaryRow[];
+  foodRows: FoodRow[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
@@ -104,10 +109,12 @@ export default function AdminDashboard({
   }
 
   const dietaryFilled = dietaryRows.filter((r) => r.restrictions !== null).length;
+  const foodFilled = foodRows.filter((r) => r.foodId !== null).length;
   const badge: Partial<Record<Tab, number>> = {
     SUBMISSIONS: summary.PENDING,
     EXHIBITION: exhibitionRows.length,
     DIETARY: dietaryFilled,
+    FOOD: foodFilled,
   };
 
   const activeLabel = NAV.find((n) => n.key === activeTab)?.label ?? "";
@@ -207,6 +214,8 @@ export default function AdminDashboard({
               exhibitionCount={exhibitionRows.length}
               dietaryFilled={dietaryFilled}
               dietaryTotal={dietaryRows.length}
+              foodFilled={foodFilled}
+              foodTotal={foodRows.length}
               onGo={selectTab}
             />
           )}
@@ -222,6 +231,8 @@ export default function AdminDashboard({
           )}
 
           {activeTab === "DIETARY" && <DietaryManager rows={dietaryRows} />}
+
+          {activeTab === "FOOD" && <FoodManager rows={foodRows} />}
 
           {activeTab === "SUBMISSIONS" && (
             <div className="space-y-4">
@@ -316,12 +327,16 @@ function DashboardOverview({
   exhibitionCount,
   dietaryFilled,
   dietaryTotal,
+  foodFilled,
+  foodTotal,
   onGo,
 }: {
   summary: Summary;
   exhibitionCount: number;
   dietaryFilled: number;
   dietaryTotal: number;
+  foodFilled: number;
+  foodTotal: number;
   onGo: (tab: Tab) => void;
 }) {
   return (
@@ -359,6 +374,12 @@ function DashboardOverview({
             title="ข้อมูลอาหาร"
             desc={`กรอกแล้ว ${dietaryFilled}/${dietaryTotal} คน`}
             onClick={() => onGo("DIETARY")}
+          />
+          <ShortcutCard
+            icon={Soup}
+            title="เลือกอาหาร"
+            desc={`เลือกแล้ว ${foodFilled}/${foodTotal} คน`}
+            onClick={() => onGo("FOOD")}
           />
         </div>
       </div>

@@ -105,6 +105,24 @@ export function ensureSchema(): Promise<void> {
       await sql`
         ALTER TABLE dietary_choices ADD COLUMN IF NOT EXISTS seafood_other TEXT NOT NULL DEFAULT ''
       `;
+
+      // Poll เลือกอาหาร — นักเรียนหนึ่งคนเลือกได้หนึ่งเมนู พร้อมคอมเมนต์เพิ่มเติม
+      await sql`
+        CREATE TABLE IF NOT EXISTS food_choices (
+          id            BIGSERIAL PRIMARY KEY,
+          student_id    TEXT NOT NULL UNIQUE,
+          student_no    INTEGER NOT NULL,
+          nickname_th   TEXT NOT NULL,
+          full_name_th  TEXT NOT NULL,
+          food_id       TEXT NOT NULL,
+          comment       TEXT NOT NULL DEFAULT '',
+          updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS food_choices_food_idx ON food_choices (food_id)`;
+      await sql`
+        ALTER TABLE food_choices ADD COLUMN IF NOT EXISTS comment TEXT NOT NULL DEFAULT ''
+      `;
     })().catch((err) => {
       initialized = null;
       throw err;
