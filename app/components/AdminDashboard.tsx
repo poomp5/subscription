@@ -6,6 +6,7 @@ import {
   UtensilsCrossed,
   Soup,
   Tent,
+  LinkIcon,
   LayoutDashboard,
   Wallet,
   CircleAlert,
@@ -23,9 +24,10 @@ import ExhibitionManager, {
 } from "./ExhibitionManager";
 import DietaryManager, { type DietaryRow } from "./DietaryManager";
 import FoodManager, { type FoodRow } from "./FoodManager";
+import TcasfolioManager, { type TcasfolioRow } from "./TcasfolioManager";
 
 type Status = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
-type Tab = "DASHBOARD" | "SUBMISSIONS" | "PENALTIES" | "EXHIBITION" | "DIETARY" | "FOOD";
+type Tab = "DASHBOARD" | "SUBMISSIONS" | "PENALTIES" | "EXHIBITION" | "DIETARY" | "FOOD" | "TCASFOLIO";
 
 type Summary = {
   ALL: number;
@@ -49,6 +51,7 @@ const NAV: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "EXHIBITION", label: "จัดนิทรรศการ", icon: Tent },
   { key: "DIETARY", label: "ข้อมูลอาหาร", icon: UtensilsCrossed },
   { key: "FOOD", label: "เลือกอาหาร", icon: Soup },
+  { key: "TCASFOLIO", label: "Portfolio", icon: LinkIcon },
 ];
 
 export default function AdminDashboard({
@@ -62,6 +65,7 @@ export default function AdminDashboard({
   exhibitionRoles,
   dietaryRows,
   foodRows,
+  tcasfolioRows,
 }: {
   rows: SubmissionRow[];
   status: Status;
@@ -73,6 +77,7 @@ export default function AdminDashboard({
   exhibitionRoles: ExhibitionRoleRow[];
   dietaryRows: DietaryRow[];
   foodRows: FoodRow[];
+  tcasfolioRows: TcasfolioRow[];
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
@@ -110,11 +115,13 @@ export default function AdminDashboard({
 
   const dietaryFilled = dietaryRows.filter((r) => r.restrictions !== null).length;
   const foodFilled = foodRows.filter((r) => r.foodId !== null).length;
+  const tcasfolioFilled = tcasfolioRows.filter((r) => r.portfolioUrl.trim().length > 0).length;
   const badge: Partial<Record<Tab, number>> = {
     SUBMISSIONS: summary.PENDING,
     EXHIBITION: exhibitionRows.length,
     DIETARY: dietaryFilled,
     FOOD: foodFilled,
+    TCASFOLIO: tcasfolioFilled,
   };
 
   const activeLabel = NAV.find((n) => n.key === activeTab)?.label ?? "";
@@ -216,6 +223,8 @@ export default function AdminDashboard({
               dietaryTotal={dietaryRows.length}
               foodFilled={foodFilled}
               foodTotal={foodRows.length}
+              tcasfolioFilled={tcasfolioFilled}
+              tcasfolioTotal={tcasfolioRows.length}
               onGo={selectTab}
             />
           )}
@@ -233,6 +242,8 @@ export default function AdminDashboard({
           {activeTab === "DIETARY" && <DietaryManager rows={dietaryRows} />}
 
           {activeTab === "FOOD" && <FoodManager rows={foodRows} />}
+
+          {activeTab === "TCASFOLIO" && <TcasfolioManager rows={tcasfolioRows} />}
 
           {activeTab === "SUBMISSIONS" && (
             <div className="space-y-4">
@@ -329,6 +340,8 @@ function DashboardOverview({
   dietaryTotal,
   foodFilled,
   foodTotal,
+  tcasfolioFilled,
+  tcasfolioTotal,
   onGo,
 }: {
   summary: Summary;
@@ -337,6 +350,8 @@ function DashboardOverview({
   dietaryTotal: number;
   foodFilled: number;
   foodTotal: number;
+  tcasfolioFilled: number;
+  tcasfolioTotal: number;
   onGo: (tab: Tab) => void;
 }) {
   return (
@@ -380,6 +395,12 @@ function DashboardOverview({
             title="เลือกอาหาร"
             desc={`เลือกแล้ว ${foodFilled}/${foodTotal} คน`}
             onClick={() => onGo("FOOD")}
+          />
+          <ShortcutCard
+            icon={LinkIcon}
+            title="Portfolio"
+            desc={`ส่งแล้ว ${tcasfolioFilled}/${tcasfolioTotal} คน`}
+            onClick={() => onGo("TCASFOLIO")}
           />
         </div>
       </div>

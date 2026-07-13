@@ -17,6 +17,7 @@ import type { StudentPenaltyRow } from "../components/PenaltyManager";
 import type { ExhibitionChoiceRow } from "../components/ExhibitionManager";
 import type { DietaryRow } from "../components/DietaryManager";
 import type { FoodRow } from "../components/FoodManager";
+import type { TcasfolioRow } from "../components/TcasfolioManager";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function AdminPage({
     : "ALL";
   const q = (qRaw || "").trim();
 
-  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw, dietaryRaw, foodRaw] = await Promise.all([
+  const [rowsRaw, counts, paidRaw, penaltiesRaw, exhibitionRaw, dietaryRaw, foodRaw, tcasfolioRaw] = await Promise.all([
     status === "ALL" && !q
       ? sql`SELECT * FROM submissions ORDER BY created_at DESC LIMIT 500`
       : status === "ALL" && q
@@ -104,6 +105,10 @@ export default async function AdminPage({
     sql`
       SELECT student_id, food_id, COALESCE(comment, '') AS comment
       FROM food_choices
+    `,
+    sql`
+      SELECT student_id, COALESCE(portfolio_url, '') AS portfolio_url, updated_at
+      FROM tcasfolio_links
     `,
   ]);
 
@@ -247,6 +252,34 @@ export default async function AdminPage({
     };
   });
 
+  const tcasfolioMap = new Map(
+    (
+      tcasfolioRaw as unknown as Array<{
+        student_id: string;
+        portfolio_url: string;
+        updated_at: string;
+      }>
+    ).map((r) => [
+      r.student_id,
+      {
+        portfolioUrl: r.portfolio_url ?? "",
+        updatedAt: r.updated_at,
+      },
+    ]),
+  );
+
+  const tcasfolioRows: TcasfolioRow[] = STUDENTS.map((s) => {
+    const folio = tcasfolioMap.get(s.studentId);
+    return {
+      studentId: s.studentId,
+      studentNo: s.no,
+      nicknameTh: s.nicknameTh,
+      fullNameTh: `${s.firstNameTh} ${s.lastNameTh}`,
+      portfolioUrl: folio?.portfolioUrl ?? "",
+      updatedAt: folio?.updatedAt ?? null,
+    };
+  });
+
   return (
     <AdminDashboard
       rows={rows}
@@ -259,6 +292,7 @@ export default async function AdminPage({
       exhibitionRoles={exhibitionRoles}
       dietaryRows={dietaryRows}
       foodRows={foodRows}
+      tcasfolioRows={tcasfolioRows}
     />
   );
 }

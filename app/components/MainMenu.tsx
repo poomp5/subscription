@@ -1,14 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import {
   ArrowRight,
-  Gift,
+  LinkIcon,
   Wallet,
-  Tent,
-  UtensilsCrossed,
-  Soup,
   ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
@@ -23,14 +20,6 @@ type MenuItem = {
   alert?: string;
 };
 
-const WAI_KRU_MENU: MenuItem = {
-  href: (id) => `/wai-kru?id=${id}`,
-  icon: Gift,
-  title: "จ่ายเงินค่าพานไหว้ครู",
-  desc: "สแกน QR PromptPay ยอด 15 บาท",
-  tone: "rose",
-};
-
 const PRIMARY_MENU: MenuItem[] = [
   {
     href: (id) => `/verify?id=${id}`,
@@ -38,30 +27,6 @@ const PRIMARY_MENU: MenuItem[] = [
     title: "จ่ายเงินห้อง / ค่าปรับ",
     desc: "ชำระเงินประจำปีและดูยอดคงเหลือ",
     tone: "violet",
-  },
-  {
-    href: (id) => `/food?id=${id}`,
-    icon: Soup,
-    title: "เลือกอาหาร",
-    desc: "โหวตเมนูข้าวหน้าไก่และเพิ่มคอมเมนต์",
-    tone: "emerald",
-  },
-];
-
-const SECONDARY_MENU: MenuItem[] = [
-  {
-    href: (id) => `/exhibition?id=${id}`,
-    icon: Tent,
-    title: "เลือกฝ่ายจัดนิทรรศการ",
-    desc: "เลือกฝ่ายที่ต้องการเข้าร่วม",
-    tone: "fuchsia",
-  },
-  {
-    href: (id) => `/dietary?id=${id}`,
-    icon: UtensilsCrossed,
-    title: "เช็คข้อมูลแพ้อาหาร",
-    desc: "แจ้งอาการแพ้และข้อจำกัดด้านอาหาร",
-    tone: "amber",
   },
 ];
 
@@ -116,7 +81,6 @@ export default function MainMenu() {
   const [studentId, setStudentId] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
-  const [waiKruPaid, setWaiKruPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -124,38 +88,27 @@ export default function MainMenu() {
   const loading = pending || navigating;
 
   useEffect(() => {
-    if (!student) return;
+    if (!rememberedStudentId) {
+      setRememberMe(false);
+      return;
+    }
 
-    let cancelled = false;
-    fetch(`/api/wai-kru-status?id=${encodeURIComponent(student.studentId)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { paid?: boolean } | null) => {
-        if (!cancelled) setWaiKruPaid(!!data?.paid);
-      })
-      .catch(() => {
-        if (!cancelled) setWaiKruPaid(false);
-      });
+    const remembered = findStudent(rememberedStudentId);
+    if (!remembered) {
+      setRememberedStudentId(null);
+      setRememberMe(false);
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [student]);
+    setRememberMe(true);
+    setStudentId(remembered.studentId);
+  }, [rememberedStudentId]);
 
   useEffect(() => {
     if (!navigating) return;
     const timeout = window.setTimeout(() => setNavigating(false), 8000);
     return () => window.clearTimeout(timeout);
   }, [navigating]);
-
-  const menu = useMemo(
-    () => (waiKruPaid ? PRIMARY_MENU : [{ ...WAI_KRU_MENU, alert: "ยังไม่จ่าย" }, ...PRIMARY_MENU]),
-    [waiKruPaid],
-  );
-
-  const secondaryMenu = useMemo(
-    () => (waiKruPaid ? [WAI_KRU_MENU, ...SECONDARY_MENU] : SECONDARY_MENU),
-    [waiKruPaid],
-  );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -170,11 +123,8 @@ export default function MainMenu() {
       setError("ไม่พบเลขประจำตัวนี้ในระบบ ลองตรวจสอบอีกครั้ง");
       return;
     }
-    setWaiKruPaid(false);
     if (rememberMe) {
       setRememberedStudentId(found.studentId);
-    } else {
-      setRememberedStudentId(null);
     }
     setSelectedStudent(found);
   }
@@ -199,7 +149,6 @@ export default function MainMenu() {
             setSelectedStudent(null);
             setStudentId("");
             setRememberMe(false);
-            setWaiKruPaid(false);
             setError(null);
           }}
           className="inline-flex items-center gap-1 text-sm text-muted transition hover:text-primary"
@@ -220,15 +169,8 @@ export default function MainMenu() {
         </div>
 
         <div className="mt-4 grid gap-3">
-          {menu.map((item) => renderMenuButton(item, student.studentId, loading, go))}
-        </div>
-
-        <div className="mt-5 border-t border-violet-100 pt-4">
-          <div className="grid gap-2">
-            {secondaryMenu.map((item) =>
-              renderMenuButton(item, student.studentId, loading, go, true),
-            )}
-          </div>
+          <PortfolioMenuButton studentId={student.studentId} loading={loading} go={go} />
+          {PRIMARY_MENU.map((item) => renderMenuButton(item, student.studentId, loading, go))}
         </div>
       </div>
     );
@@ -297,6 +239,37 @@ function RouteLoading() {
         กำลังเปิดหน้า...
       </div>
     </>
+  );
+}
+
+function PortfolioMenuButton({
+  studentId,
+  loading,
+  go,
+}: {
+  studentId: string;
+  loading: boolean;
+  go: (href: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={() => go(`/tcasfolio?id=${studentId}`)}
+      className="group flex items-center gap-3 rounded-2xl border border-violet-200 bg-white p-4 text-left transition hover:border-violet-300 hover:bg-violet-50/50 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+        <LinkIcon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-medium text-violet-600">Doodee Future</span>
+        <span className="block text-sm font-semibold text-violet-900">
+          อัปโหลดลิงก์ Portfolio (tcasfolio)
+        </span>
+        <span className="block text-xs text-muted">เชื่อมต่อ Portfolio และเปิดใช้งาน tcasfolio</span>
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-violet-400 transition group-hover:translate-x-0.5 group-hover:text-violet-600" />
+    </button>
   );
 }
 

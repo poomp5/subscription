@@ -123,6 +123,23 @@ export function ensureSchema(): Promise<void> {
       await sql`
         ALTER TABLE food_choices ADD COLUMN IF NOT EXISTS comment TEXT NOT NULL DEFAULT ''
       `;
+
+      // ลิงก์ Portfolio สำหรับ tcasfolio — นักเรียนหนึ่งคนหนึ่งลิงก์ แก้ไขซ้ำได้
+      await sql`
+        CREATE TABLE IF NOT EXISTS tcasfolio_links (
+          id            BIGSERIAL PRIMARY KEY,
+          student_id    TEXT NOT NULL UNIQUE,
+          student_no    INTEGER NOT NULL,
+          nickname_th   TEXT NOT NULL,
+          full_name_th  TEXT NOT NULL,
+          portfolio_url TEXT NOT NULL DEFAULT '',
+          updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS tcasfolio_links_updated_idx ON tcasfolio_links (updated_at DESC)`;
+      await sql`
+        ALTER TABLE tcasfolio_links ADD COLUMN IF NOT EXISTS portfolio_url TEXT NOT NULL DEFAULT ''
+      `;
     })().catch((err) => {
       initialized = null;
       throw err;
