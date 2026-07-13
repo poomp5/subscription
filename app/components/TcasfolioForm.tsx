@@ -6,7 +6,7 @@ import { CircleCheck, ExternalLink, Home, LinkIcon, Pencil } from "lucide-react"
 import { useState } from "react";
 
 const EXTERNAL_LINKS = {
-  connect: "https://doodee-future.com/th/profile/tcasfolio",
+  connect: "https://doodee-future.com/th/profile",
   demo: "https://tcasfolio-demo.mytcas.com/",
   real: "https://folio.mytcas.com/",
 };
