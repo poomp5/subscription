@@ -40,10 +40,34 @@ const TONES: Record<MenuItem["tone"], { box: string; icon: string }> = {
 
 const REMEMBER_STUDENT_KEY = "ds69.rememberedStudentId";
 const REMEMBER_STUDENT_EVENT = "ds69:remembered-student";
+const REMEMBER_STUDENT_COOKIE = "ds69_remembered_student_id";
+
+function getRememberedStudentCookie() {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie
+    .split("; ")
+    .find((item) => item.startsWith(`${REMEMBER_STUDENT_COOKIE}=`));
+  return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : "";
+}
+
+function setRememberedStudentCookie(studentId: string | null) {
+  if (typeof document === "undefined") return;
+  if (studentId) {
+    document.cookie = `${REMEMBER_STUDENT_COOKIE}=${encodeURIComponent(
+      studentId,
+    )}; max-age=31536000; path=/; samesite=lax`;
+  } else {
+    document.cookie = `${REMEMBER_STUDENT_COOKIE}=; max-age=0; path=/; samesite=lax`;
+  }
+}
 
 function getRememberedStudentId() {
   if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(REMEMBER_STUDENT_KEY) ?? "";
+  try {
+    return window.localStorage.getItem(REMEMBER_STUDENT_KEY) ?? getRememberedStudentCookie();
+  } catch {
+    return getRememberedStudentCookie();
+  }
 }
 
 function subscribeRememberedStudent(callback: () => void) {
@@ -62,11 +86,16 @@ function subscribeRememberedStudent(callback: () => void) {
 }
 
 function setRememberedStudentId(studentId: string | null) {
-  if (studentId) {
-    window.localStorage.setItem(REMEMBER_STUDENT_KEY, studentId);
-  } else {
-    window.localStorage.removeItem(REMEMBER_STUDENT_KEY);
+  try {
+    if (studentId) {
+      window.localStorage.setItem(REMEMBER_STUDENT_KEY, studentId);
+    } else {
+      window.localStorage.removeItem(REMEMBER_STUDENT_KEY);
+    }
+  } catch {
+    // Cookie fallback below keeps remember-me working when localStorage is unavailable.
   }
+  setRememberedStudentCookie(studentId);
   window.dispatchEvent(new Event(REMEMBER_STUDENT_EVENT));
 }
 
@@ -86,23 +115,6 @@ export default function MainMenu() {
   const [pending, startTransition] = useTransition();
   const student = selectedStudent ?? rememberedStudent;
   const loading = pending || navigating;
-
-  useEffect(() => {
-    if (!rememberedStudentId) {
-      setRememberMe(false);
-      return;
-    }
-
-    const remembered = findStudent(rememberedStudentId);
-    if (!remembered) {
-      setRememberedStudentId(null);
-      setRememberMe(false);
-      return;
-    }
-
-    setRememberMe(true);
-    setStudentId(remembered.studentId);
-  }, [rememberedStudentId]);
 
   useEffect(() => {
     if (!navigating) return;
