@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CircleCheck, ExternalLink, Home, ImageIcon, LinkIcon, Pencil, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 
 const EXTERNAL_LINKS = {
   connect: "https://doodee-future.com/th/profile",
@@ -12,6 +12,42 @@ const EXTERNAL_LINKS = {
 };
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const PORTFOLIO_CACHE_PREFIX = "ds69.tcasfolioPortfolioUrl.";
+const PORTFOLIO_CACHE_EVENT = "ds69:tcasfolio-portfolio-url";
+
+function getCachedPortfolioUrl(studentId: string) {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(`${PORTFOLIO_CACHE_PREFIX}${studentId}`) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function setCachedPortfolioUrl(studentId: string, url: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(`${PORTFOLIO_CACHE_PREFIX}${studentId}`, url);
+  } catch {
+    // DB/R2 remain the source of truth when browser storage is unavailable.
+  }
+  window.dispatchEvent(new Event(PORTFOLIO_CACHE_EVENT));
+}
+
+function subscribePortfolioCache(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key?.startsWith(PORTFOLIO_CACHE_PREFIX)) callback();
+  };
+
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(PORTFOLIO_CACHE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(PORTFOLIO_CACHE_EVENT, callback);
+  };
+}
 
 export default function TcasfolioForm({
   studentId,
@@ -29,7 +65,13 @@ export default function TcasfolioForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const currentImageUrl = imagePreview ?? savedPortfolioUrl.trim();
+  const cachedPortfolioUrl = useSyncExternalStore(
+    subscribePortfolioCache,
+    () => getCachedPortfolioUrl(studentId),
+    () => "",
+  );
+  const displayPortfolioUrl = savedPortfolioUrl.trim() || cachedPortfolioUrl.trim();
+  const currentImageUrl = imagePreview ?? displayPortfolioUrl;
 
   function handleFile(file: File) {
     setError(null);
@@ -94,6 +136,7 @@ export default function TcasfolioForm({
       };
       if (data.ok && data.portfolioUrl) {
         setSavedPortfolioUrl(data.portfolioUrl);
+        setCachedPortfolioUrl(studentId, data.portfolioUrl);
         setImagePreview(data.portfolioUrl);
         setImageBase64(null);
         setImageMime(null);
@@ -119,13 +162,13 @@ export default function TcasfolioForm({
         <p className="mt-1 text-sm text-emerald-700">อัปโหลดรูปไปยัง Cloudflare R2 แล้ว</p>
 
         <a
-          href={savedPortfolioUrl}
+          href={displayPortfolioUrl}
           target="_blank"
           rel="noreferrer"
           className="mt-5 flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-left text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
         >
           <LinkIcon className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 break-all">{savedPortfolioUrl}</span>
+          <span className="min-w-0 flex-1 break-all">{displayPortfolioUrl}</span>
           <ExternalLink className="h-4 w-4 shrink-0" />
         </a>
 
@@ -203,9 +246,9 @@ export default function TcasfolioForm({
                 <span>·</span>
                 <span>คลิกเพื่อเปลี่ยนรูป</span>
               </div>
-              {savedPortfolioUrl && (
+              {displayPortfolioUrl && (
                 <a
-                  href={savedPortfolioUrl}
+                  href={displayPortfolioUrl}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
@@ -222,9 +265,9 @@ export default function TcasfolioForm({
               <Upload className="h-8 w-8 text-violet-400" />
               <div className="text-sm font-medium text-violet-900">เลือกรูป Portfolio</div>
               <div className="text-xs text-muted">.png .jpg .jpeg .webp · ไม่เกิน 8 MB</div>
-              {savedPortfolioUrl && (
+              {displayPortfolioUrl && (
                 <a
-                  href={savedPortfolioUrl}
+                  href={displayPortfolioUrl}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
