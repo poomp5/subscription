@@ -276,9 +276,9 @@ function PortfolioMenuButton({
       <span className="min-w-0 flex-1">
         <span className="block text-xs font-medium text-violet-600">Doodee Future</span>
         <span className="block text-sm font-semibold text-violet-900">
-          อัปโหลดลิงก์ Portfolio (tcasfolio)
+          อัปโหลดรูป Portfolio (tcasfolio)
         </span>
-        <span className="block text-xs text-muted">เชื่อมต่อ Portfolio และเปิดใช้งาน tcasfolio</span>
+        <span className="block text-xs text-muted">เก็บรูปใน Cloudflare R2 แล้วสร้างลิงก์ให้อัตโนมัติ</span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0 text-violet-400 transition group-hover:translate-x-0.5 group-hover:text-violet-600" />
     </button>

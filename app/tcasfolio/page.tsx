@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, LinkIcon } from "lucide-react";
+import { ArrowLeft, ImageIcon } from "lucide-react";
 import TcasfolioForm from "../components/TcasfolioForm";
 import { findStudent } from "../data/students";
 import { sql } from "../lib/db";
@@ -42,14 +42,14 @@ export default async function TcasfolioPage({
 
         <section className="mt-5 fade-up">
           <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 text-xs font-medium text-violet-700">
-            <LinkIcon className="h-3.5 w-3.5" />
+            <ImageIcon className="h-3.5 w-3.5" />
             Doodee Future
           </div>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-violet-900 sm:text-3xl">
             สวัสดี {student.nicknameTh} (DEK70)
           </h1>
           <p className="mt-1 text-sm text-muted">
-            อัปเดตลิงก์ Tcasfolio ล่าสุด
+            อัปโหลดรูป Portfolio แล้วระบบจะสร้างลิงก์จาก Cloudflare R2 ให้
           </p>
         </section>
 

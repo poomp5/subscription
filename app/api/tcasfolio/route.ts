@@ -3,22 +3,13 @@ import { findStudent } from "../../data/students";
 import { notifyDiscord } from "../../lib/discord";
 import { sql } from "../../lib/db";
 import { ensureSchema } from "../../lib/schema";
+import { uploadTcasfolioImage } from "../../lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function normalizeUrl(value: unknown) {
-  const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return "";
-
-  try {
-    const url = new URL(raw);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
-    return url.toString().slice(0, 500);
-  } catch {
-    return "";
-  }
-}
+const ALLOWED_IMAGE_MIMES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export async function GET(request: NextRequest) {
   await ensureSchema();
@@ -43,8 +34,24 @@ export async function GET(request: NextRequest) {
 
 type SavePayload = {
   studentId?: string;
-  portfolioUrl?: unknown;
+  portfolioImage?: {
+    base64?: string;
+    mime?: string;
+    name?: string;
+  };
 };
+
+function makeRef(studentId: string): string {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `TCASFOLIO-${studentId}-${ts}${rand}`;
+}
+
+function estimateBase64Bytes(base64: string) {
+  const normalized = base64.replace(/\s/g, "");
+  const padding = normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0;
+  return Math.floor((normalized.length * 3) / 4) - padding;
+}
 
 export async function POST(request: NextRequest) {
   let body: SavePayload;
@@ -59,9 +66,19 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: false, error: "ไม่พบนักเรียน" }, { status: 400 });
   }
 
-  const portfolioUrl = normalizeUrl(body.portfolioUrl);
-  if (!portfolioUrl) {
-    return Response.json({ ok: false, error: "กรุณาใส่ลิงก์ Portfolio ให้ถูกต้อง" }, { status: 400 });
+  const imageBase64 = body.portfolioImage?.base64?.trim();
+  const imageMime = body.portfolioImage?.mime?.trim().toLowerCase() || "image/png";
+  if (!imageBase64) {
+    return Response.json({ ok: false, error: "กรุณาอัปโหลดรูป Portfolio" }, { status: 400 });
+  }
+  if (!ALLOWED_IMAGE_MIMES.has(imageMime)) {
+    return Response.json(
+      { ok: false, error: "รองรับเฉพาะไฟล์ PNG, JPG หรือ WEBP" },
+      { status: 400 },
+    );
+  }
+  if (estimateBase64Bytes(imageBase64) > MAX_IMAGE_BYTES) {
+    return Response.json({ ok: false, error: "ไฟล์ใหญ่เกินไป (เกิน 8 MB)" }, { status: 400 });
   }
 
   try {
@@ -75,6 +92,31 @@ export async function POST(request: NextRequest) {
   }
 
   const fullNameTh = `${student.firstNameTh} ${student.lastNameTh}`.trim();
+  const ref = makeRef(student.studentId);
+  let portfolioUrl: string;
+  let portfolioKey: string;
+
+  try {
+    const uploaded = await uploadTcasfolioImage({
+      base64: imageBase64,
+      mime: imageMime,
+      ref,
+    });
+    if (!uploaded) {
+      return Response.json(
+        { ok: false, error: "ยังไม่ได้ตั้งค่า Cloudflare R2" },
+        { status: 500 },
+      );
+    }
+    portfolioUrl = uploaded.url;
+    portfolioKey = uploaded.key;
+  } catch (err) {
+    console.error("[tcasfolio] image upload failed:", err);
+    return Response.json(
+      { ok: false, error: "อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้ง" },
+      { status: 502 },
+    );
+  }
 
   try {
     await sql`
@@ -99,10 +141,13 @@ export async function POST(request: NextRequest) {
 
   after(() =>
     notifyDiscord({
-      title: "บันทึกลิงก์ Portfolio (tcasfolio)",
+      title: "อัปโหลดรูป Portfolio (tcasfolio)",
       description: `**${student.nicknameTh}** (${fullNameTh})`,
       color: 0x7c3aed,
-      fields: [{ name: "ลิงก์ Portfolio", value: portfolioUrl }],
+      fields: [
+        { name: "ลิงก์รูป", value: portfolioUrl },
+        { name: "R2 Key", value: portfolioKey },
+      ],
     }),
   );
 

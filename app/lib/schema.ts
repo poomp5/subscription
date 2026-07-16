@@ -124,7 +124,7 @@ export function ensureSchema(): Promise<void> {
         ALTER TABLE food_choices ADD COLUMN IF NOT EXISTS comment TEXT NOT NULL DEFAULT ''
       `;
 
-      // ลิงก์ Portfolio สำหรับ tcasfolio — นักเรียนหนึ่งคนหนึ่งลิงก์ แก้ไขซ้ำได้
+      // ลิงก์รูป Portfolio สำหรับ tcasfolio — นักเรียนหนึ่งคนหนึ่งลิงก์ แก้ไขซ้ำได้
       await sql`
         CREATE TABLE IF NOT EXISTS tcasfolio_links (
           id            BIGSERIAL PRIMARY KEY,

@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleDashed, ExternalLink, LinkIcon } from "lucide-react";
+import { CircleDashed, ExternalLink, ImageIcon } from "lucide-react";
 
 export type TcasfolioRow = {
   studentId: string;
@@ -25,7 +25,7 @@ export default function TcasfolioManager({ rows }: { rows: TcasfolioRow[] }) {
       <div className="overflow-hidden rounded-2xl border border-border-default bg-white">
         <div className="hidden grid-cols-[1fr_minmax(0,2fr)_150px] gap-3 border-b border-border-default bg-surface-muted px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
           <div>นักเรียน</div>
-          <div>ลิงก์ Portfolio</div>
+          <div>รูป Portfolio</div>
           <div className="text-right">อัปเดต</div>
         </div>
 
@@ -53,8 +53,8 @@ export default function TcasfolioManager({ rows }: { rows: TcasfolioRow[] }) {
                       rel="noreferrer"
                       className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 transition hover:border-violet-300 hover:bg-violet-100"
                     >
-                      <LinkIcon className="h-3.5 w-3.5 shrink-0" />
-                      <span className="min-w-0 truncate">{r.portfolioUrl}</span>
+                      <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="min-w-0 truncate">เปิดรูป Portfolio</span>
                       <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                     </a>
                   ) : (

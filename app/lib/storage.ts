@@ -66,14 +66,14 @@ export type UploadSlipResult = {
   key: string;
 };
 
-export async function uploadSlip({
+async function uploadToR2({
   base64,
   mime,
-  ref,
+  key,
 }: {
   base64: string;
   mime: string;
-  ref: string;
+  key: string;
 }): Promise<UploadSlipResult | null> {
   const env = readR2Env();
   if (!env) {
@@ -81,14 +81,12 @@ export async function uploadSlip({
     return null;
   }
 
-  const ext = (mime.split("/")[1] || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const safeRef = ref.replace(/[^A-Za-z0-9_-]/g, "_");
-  const key = `${env.prefix}slips/${safeRef}.${ext}`;
+  const fullKey = `${env.prefix}${key}`;
   const body = Buffer.from(base64, "base64");
 
   const cmd = new PutObjectCommand({
     Bucket: env.bucket,
-    Key: key,
+    Key: fullKey,
     Body: body,
     ContentType: mime,
     CacheControl: "public, max-age=31536000, immutable",
@@ -98,7 +96,40 @@ export async function uploadSlip({
   await c.send(cmd);
 
   return {
-    key,
-    url: `${env.publicBaseUrl}/${key}`,
+    key: fullKey,
+    url: `${env.publicBaseUrl}/${fullKey}`,
   };
+}
+
+function extensionFromMime(mime: string) {
+  const ext = (mime.split("/")[1] || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return ext === "jpeg" ? "jpg" : ext;
+}
+
+export async function uploadSlip({
+  base64,
+  mime,
+  ref,
+}: {
+  base64: string;
+  mime: string;
+  ref: string;
+}): Promise<UploadSlipResult | null> {
+  const ext = extensionFromMime(mime);
+  const safeRef = ref.replace(/[^A-Za-z0-9_-]/g, "_");
+  return uploadToR2({ base64, mime, key: `slips/${safeRef}.${ext}` });
+}
+
+export async function uploadTcasfolioImage({
+  base64,
+  mime,
+  ref,
+}: {
+  base64: string;
+  mime: string;
+  ref: string;
+}): Promise<UploadSlipResult | null> {
+  const ext = extensionFromMime(mime);
+  const safeRef = ref.replace(/[^A-Za-z0-9_-]/g, "_");
+  return uploadToR2({ base64, mime, key: `tcasfolio/${safeRef}.${ext}` });
 }
