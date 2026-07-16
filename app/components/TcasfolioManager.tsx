@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleDashed, ExternalLink, ImageIcon } from "lucide-react";
+import { CircleDashed, ExternalLink, FileSpreadsheet, ImageIcon } from "lucide-react";
 
 export type TcasfolioRow = {
   studentId: string;
@@ -16,6 +16,17 @@ export default function TcasfolioManager({ rows }: { rows: TcasfolioRow[] }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border-default bg-white px-4 py-3">
+        <div className="text-sm text-muted">ดาวน์โหลดข้อมูล TCASFOLIO ทั้งหมด ({rows.length} คน)</div>
+        <a
+          href="/api/admin/tcasfolio/export?format=xlsx"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition hover:bg-green-100"
+        >
+          <FileSpreadsheet className="h-3.5 w-3.5" />
+          Excel
+        </a>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <SummaryCard label="ส่งแล้ว" value={`${filled.length}/${rows.length}`} />
         <SummaryCard label="ยังไม่ส่ง" value={rows.length - filled.length} />
@@ -23,8 +34,9 @@ export default function TcasfolioManager({ rows }: { rows: TcasfolioRow[] }) {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border-default bg-white">
-        <div className="hidden grid-cols-[1fr_minmax(0,2fr)_150px] gap-3 border-b border-border-default bg-surface-muted px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
+        <div className="hidden grid-cols-[1fr_150px_minmax(0,2fr)_150px] gap-3 border-b border-border-default bg-surface-muted px-4 py-3 text-xs uppercase tracking-wider text-muted lg:grid">
           <div>นักเรียน</div>
+          <div>ตัวอย่างรูป</div>
           <div>รูป Portfolio</div>
           <div className="text-right">อัปเดต</div>
         </div>
@@ -35,7 +47,7 @@ export default function TcasfolioManager({ rows }: { rows: TcasfolioRow[] }) {
             return (
               <li
                 key={r.studentId}
-                className="grid grid-cols-1 gap-2 px-4 py-3 transition hover:bg-surface-muted lg:grid-cols-[1fr_minmax(0,2fr)_150px] lg:items-center"
+                className="grid grid-cols-1 gap-3 px-4 py-3 transition hover:bg-surface-muted lg:grid-cols-[1fr_150px_minmax(0,2fr)_150px] lg:items-center"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-foreground">{r.nicknameTh}</div>
@@ -43,6 +55,27 @@ export default function TcasfolioManager({ rows }: { rows: TcasfolioRow[] }) {
                     #{r.studentNo} · <span className="font-mono">{r.studentId}</span> ·{" "}
                     {r.fullNameTh}
                   </div>
+                </div>
+
+                <div>
+                  {hasLink ? (
+                    <a
+                      href={r.portfolioUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block h-24 w-20 overflow-hidden rounded-lg border border-violet-100 bg-violet-50 transition hover:border-violet-300"
+                      aria-label={`เปิดรูป Portfolio ของ ${r.nicknameTh}`}
+                    >
+                      <span
+                        className="block h-full w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url("${r.portfolioUrl.replace(/"/g, "%22")}")` }}
+                      />
+                    </a>
+                  ) : (
+                    <span className="flex h-24 w-20 items-center justify-center rounded-lg border border-dashed border-border-default bg-surface-muted text-violet-200">
+                      <ImageIcon className="h-6 w-6" />
+                    </span>
+                  )}
                 </div>
 
                 <div className="min-w-0">
