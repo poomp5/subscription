@@ -29,6 +29,7 @@ export default function TcasfolioForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const currentImageUrl = imagePreview ?? savedPortfolioUrl.trim();
 
   function handleFile(file: File) {
     setError(null);
@@ -93,6 +94,10 @@ export default function TcasfolioForm({
       };
       if (data.ok && data.portfolioUrl) {
         setSavedPortfolioUrl(data.portfolioUrl);
+        setImagePreview(data.portfolioUrl);
+        setImageBase64(null);
+        setImageMime(null);
+        setImageName(null);
         setShowSuccess(true);
       } else {
         setError(data.error ?? "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
@@ -185,17 +190,32 @@ export default function TcasfolioForm({
           onClick={() => fileInputRef.current?.click()}
           className="mt-3 cursor-pointer rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-4 transition hover:border-violet-400 hover:bg-violet-50"
         >
-          {imagePreview ? (
+          {currentImageUrl ? (
             <div className="flex flex-col items-center gap-2">
-              <Image
-                src={imagePreview}
-                alt="ตัวอย่างรูป Portfolio"
-                width={640}
-                height={900}
-                unoptimized
-                className="max-h-72 w-auto rounded-lg object-contain"
+              <div
+                className="h-72 w-full max-w-sm rounded-lg border border-violet-100 bg-white bg-contain bg-center bg-no-repeat"
+                style={{ backgroundImage: `url("${currentImageUrl.replace(/"/g, "%22")}")` }}
+                role="img"
+                aria-label="ตัวอย่างรูป Portfolio"
               />
-              <div className="text-xs text-muted">คลิกเพื่อเปลี่ยนรูป</div>
+              <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted">
+                <span>{imageBase64 ? "รูปที่เลือกใหม่" : "รูปที่เคยส่งไว้"}</span>
+                <span>·</span>
+                <span>คลิกเพื่อเปลี่ยนรูป</span>
+              </div>
+              {savedPortfolioUrl && (
+                <a
+                  href={savedPortfolioUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-white px-2.5 py-1 text-xs font-medium text-violet-700"
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  เปิดรูปเดิม
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-1.5 py-6 text-center">

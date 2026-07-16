@@ -109,7 +109,6 @@ export default function MainMenu() {
   const rememberedStudent = rememberedStudentId ? (findStudent(rememberedStudentId) ?? null) : null;
   const [studentId, setStudentId] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -135,9 +134,7 @@ export default function MainMenu() {
       setError("ไม่พบเลขประจำตัวนี้ในระบบ ลองตรวจสอบอีกครั้ง");
       return;
     }
-    if (rememberMe) {
-      setRememberedStudentId(found.studentId);
-    }
+    setRememberedStudentId(found.studentId);
     setSelectedStudent(found);
   }
 
@@ -160,7 +157,6 @@ export default function MainMenu() {
             setRememberedStudentId(null);
             setSelectedStudent(null);
             setStudentId("");
-            setRememberMe(false);
             setError(null);
           }}
           className="inline-flex items-center gap-1 text-sm text-muted transition hover:text-primary"
@@ -209,15 +205,9 @@ export default function MainMenu() {
         className="mt-2 block w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-lg tracking-wider text-foreground outline-none transition placeholder:text-violet-300 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
       />
 
-      <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-muted">
-        <input
-          type="checkbox"
-          checked={rememberMe}
-          onChange={(e) => setRememberMe(e.target.checked)}
-          className="h-4 w-4 rounded border-violet-300 text-violet-600 accent-violet-600"
-        />
-        จดจำฉัน
-      </label>
+      <p className="mt-2 text-xs text-muted">
+        ระบบจะจำเลขประจำตัวนี้ไว้จนกว่าจะกดเปลี่ยนเลขประจำตัว
+      </p>
 
       {error && (
         <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
